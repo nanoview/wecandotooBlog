@@ -136,7 +136,7 @@ const Contact = () => {
                     </div>
                   </div>
                 </CardContent>
-              </Cart>
+              </Card>
 
               {/* FAQ Section */}
               <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-0">
