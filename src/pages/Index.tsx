@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Calendar, User, Tag, ChevronRight, Star } from 'lucide-react';
+import { Search, Calendar, User, Tag, ChevronRight, Star, LogIn, Settings, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -9,8 +9,10 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import BlogPost from '@/components/BlogPost';
 import CategoryFilter from '@/components/CategoryFilter';
 import { blogPosts, categories } from '@/data/blogData';
+import { useAuth } from '@/hooks/useAuth';
 
 const Index = () => {
+  const { user, userRole, signOut } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
 
@@ -48,9 +50,33 @@ const Index = () => {
               <Link to="/contact" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
                 Contact
               </Link>
-              <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                Write Post
-              </Button>
+              {user ? (
+                <div className="flex items-center space-x-4">
+                  {userRole === 'admin' && (
+                    <Link to="/admin">
+                      <Button variant="outline" size="sm">
+                        <Settings className="w-4 h-4 mr-2" />
+                        Admin
+                      </Button>
+                    </Link>
+                  )}
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={signOut}
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Sign Out
+                  </Button>
+                </div>
+              ) : (
+                <Link to="/auth">
+                  <Button>
+                    <LogIn className="w-4 h-4 mr-2" />
+                    Sign In
+                  </Button>
+                </Link>
+              )}
             </nav>
           </div>
         </div>

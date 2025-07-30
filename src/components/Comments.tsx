@@ -37,23 +37,32 @@ export const Comments = ({ blogPostId }: CommentsProps) => {
 
   const fetchComments = async () => {
     try {
-      const { data, error } = await supabase
+      // First get comments
+      const { data: commentsData, error: commentsError } = await supabase
         .from('comments')
-        .select(`
-          id,
-          content,
-          created_at,
-          user_id,
-          profiles!inner (
-            username,
-            display_name
-          )
-        `)
+        .select('id, content, created_at, user_id')
         .eq('blog_post_id', blogPostId)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setComments(data || []);
+      if (commentsError) throw commentsError;
+
+      // Then get profiles for each comment
+      const commentsWithProfiles = await Promise.all(
+        (commentsData || []).map(async (comment) => {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('username, display_name')
+            .eq('user_id', comment.user_id)
+            .single();
+
+          return {
+            ...comment,
+            profiles: profile || { username: 'Unknown', display_name: 'Unknown User' }
+          };
+        })
+      );
+
+      setComments(commentsWithProfiles);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -89,28 +98,31 @@ export const Comments = ({ blogPostId }: CommentsProps) => {
     setSubmitting(true);
 
     try {
-      const { data, error } = await supabase
+      const { data: commentData, error } = await supabase
         .from('comments')
         .insert({
           content: newComment.trim(),
           blog_post_id: blogPostId,
           user_id: user.id
         })
-        .select(`
-          id,
-          content,
-          created_at,
-          user_id,
-          profiles!inner (
-            username,
-            display_name
-          )
-        `)
+        .select('id, content, created_at, user_id')
         .single();
 
       if (error) throw error;
 
-      setComments([data, ...comments]);
+      // Get profile for this comment
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('username, display_name')
+        .eq('user_id', user.id)
+        .single();
+
+      const newCommentWithProfile = {
+        ...commentData,
+        profiles: profile || { username: 'Unknown', display_name: 'Unknown User' }
+      };
+
+      setComments([newCommentWithProfile, ...comments]);
       setNewComment('');
       toast({
         title: "Success",

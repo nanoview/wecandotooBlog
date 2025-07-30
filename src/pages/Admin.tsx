@@ -48,38 +48,57 @@ const Admin = () => {
 
   const fetchData = async () => {
     try {
-      // Fetch all profiles with their roles
+      // Fetch all profiles
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select(`
-          id,
-          username,
-          display_name,
-          created_at,
-          user_roles!inner (role)
-        `)
+        .select('id, user_id, username, display_name, created_at')
         .order('created_at', { ascending: false });
 
       if (profilesError) throw profilesError;
-      setProfiles(profilesData || []);
 
-      // Fetch all comments with user info
+      // Fetch roles for each profile
+      const profilesWithRoles = await Promise.all(
+        (profilesData || []).map(async (profile) => {
+          const { data: roleData } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', profile.user_id)
+            .single();
+
+          return {
+            ...profile,
+            user_roles: roleData ? [{ role: roleData.role }] : [{ role: 'user' }]
+          };
+        })
+      );
+
+      setProfiles(profilesWithRoles);
+
+      // Fetch all comments
       const { data: commentsData, error: commentsError } = await supabase
         .from('comments')
-        .select(`
-          id,
-          content,
-          blog_post_id,
-          created_at,
-          profiles!inner (
-            username,
-            display_name
-          )
-        `)
+        .select('id, content, blog_post_id, created_at, user_id')
         .order('created_at', { ascending: false });
 
       if (commentsError) throw commentsError;
-      setComments(commentsData || []);
+
+      // Fetch profiles for each comment
+      const commentsWithProfiles = await Promise.all(
+        (commentsData || []).map(async (comment) => {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('username, display_name')
+            .eq('user_id', comment.user_id)
+            .single();
+
+          return {
+            ...comment,
+            profiles: profile || { username: 'Unknown', display_name: 'Unknown User' }
+          };
+        })
+      );
+
+      setComments(commentsWithProfiles);
     } catch (error: any) {
       toast({
         title: "Error",

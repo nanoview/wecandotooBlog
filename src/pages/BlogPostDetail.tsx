@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { blogPosts } from '@/data/blogData';
 import BlogPost from '@/components/BlogPost';
+import { Comments } from '@/components/Comments';
 
 const BlogPostDetail = () => {
   const { id } = useParams();
@@ -168,6 +169,11 @@ const BlogPostDetail = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Comments Section */}
+        <div className="mt-12">
+          <Comments blogPostId={post.id.toString()} />
+        </div>
       </article>
 
       {/* Related Posts */}
