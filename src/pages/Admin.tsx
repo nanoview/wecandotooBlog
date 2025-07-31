@@ -36,12 +36,12 @@ const Admin = () => {
   const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
-    if (!loading && (!user || userRole !== 'admin')) {
+    if (!loading && (!user || (userRole !== 'superadmin' && userRole !== 'admin'))) {
       navigate('/');
       return;
     }
 
-    if (user && userRole === 'admin') {
+    if (user && (userRole === 'superadmin' || userRole === 'admin')) {
       fetchData();
     }
   }, [user, userRole, loading, navigate]);
@@ -133,13 +133,11 @@ const Admin = () => {
     }
   };
 
-  const toggleUserRole = async (userId: string, currentRole: string) => {
-    const newRole = currentRole === 'admin' ? 'user' : 'admin';
-    
+  const updateUserRole = async (userId: string, newRole: 'superadmin' | 'admin' | 'editor' | 'user') => {
     try {
       const { error } = await supabase
         .from('user_roles')
-        .update({ role: newRole })
+        .update({ role: newRole as any })
         .eq('user_id', userId);
 
       if (error) throw error;
@@ -161,6 +159,19 @@ const Admin = () => {
         description: error.message,
         variant: "destructive"
       });
+    }
+  };
+
+  const getRoleBadgeVariant = (role: string) => {
+    switch (role) {
+      case 'superadmin':
+        return 'destructive';
+      case 'admin':
+        return 'default';
+      case 'editor':
+        return 'secondary';
+      default:
+        return 'outline';
     }
   };
 
@@ -218,12 +229,12 @@ const Admin = () => {
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Admin Users</CardTitle>
-              <Shield className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Editors</CardTitle>
+              <Settings className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {profiles.filter(p => p.user_roles[0]?.role === 'admin').length}
+                {profiles.filter(p => p.user_roles[0]?.role === 'editor').length}
               </div>
             </CardContent>
           </Card>
@@ -253,16 +264,40 @@ const Admin = () => {
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant={profile.user_roles[0]?.role === 'admin' ? 'default' : 'secondary'}>
+                      <Badge variant={getRoleBadgeVariant(profile.user_roles[0]?.role || 'user')}>
                         {profile.user_roles[0]?.role || 'user'}
                       </Badge>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => toggleUserRole(profile.id, profile.user_roles[0]?.role || 'user')}
-                      >
-                        {profile.user_roles[0]?.role === 'admin' ? 'Remove Admin' : 'Make Admin'}
-                      </Button>
+                      {userRole === 'superadmin' && (
+                        <div className="flex gap-1">
+                          {profile.user_roles[0]?.role !== 'admin' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => updateUserRole(profile.id, 'admin')}
+                            >
+                              Make Admin
+                            </Button>
+                          )}
+                          {profile.user_roles[0]?.role !== 'editor' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => updateUserRole(profile.id, 'editor')}
+                            >
+                              Make Editor
+                            </Button>
+                          )}
+                          {profile.user_roles[0]?.role !== 'user' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => updateUserRole(profile.id, 'user')}
+                            >
+                              Make User
+                            </Button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
