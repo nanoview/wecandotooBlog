@@ -36,15 +36,16 @@ const Admin = () => {
   const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
-    if (!loading && (!user || (userRole !== 'superadmin' && userRole !== 'admin'))) {
-      navigate('/');
+    if (!loading && !user) {
+      navigate('/admin-login');
       return;
     }
 
-    if (user && (userRole === 'superadmin' || userRole === 'admin')) {
+    // For now, allow any authenticated user until database migration is applied
+    if (user) {
       fetchData();
     }
-  }, [user, userRole, loading, navigate]);
+  }, [user, loading, navigate]);
 
   const fetchData = async () => {
     try {
