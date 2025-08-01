@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, MessageSquare, Shield, Settings, ArrowLeft } from 'lucide-react';
+import { Users, MessageSquare, Shield, Settings, ArrowLeft, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import WordPressMigrationPanel from '@/components/WordPressMigrationPanel';
 
 interface Profile {
   id: string;
@@ -29,7 +30,7 @@ interface Comment {
 }
 
 const Admin = () => {
-  const { user, userRole, loading } = useAuth();
+  const { user, userRole, username, loading, refreshUserData, isNanopro, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -37,16 +38,16 @@ const Admin = () => {
   const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
-    if (!loading && !user) {
-      navigate('/admin-login');
+    if (!loading && (!user || userRole !== 'admin')) {
+      navigate('/');
       return;
     }
 
-    // For now, allow any authenticated user until database migration is applied
-    if (user) {
+    // Only admin users can access admin panel
+    if (user && userRole === 'admin') {
       fetchData();
     }
-  }, [user, loading, navigate]);
+  }, [user, userRole, loading, navigate]);
 
   const fetchData = async () => {
     try {
@@ -137,12 +138,20 @@ const Admin = () => {
 
   const updateUserRole = async (userId: string, newRole: 'admin' | 'editor' | 'user') => {
     try {
-      const { error } = await supabase
+      // First, try to update the existing role
+      const { error: updateError } = await supabase
         .from('user_roles')
         .update({ role: newRole as any })
         .eq('user_id', userId);
 
-      if (error) throw error;
+      // If update fails (maybe no existing row), try to insert a new one
+      if (updateError) {
+        const { error: insertError } = await supabase
+          .from('user_roles')
+          .insert({ user_id: userId, role: newRole as any });
+        
+        if (insertError) throw insertError;
+      }
 
       // Update local state
       setProfiles(profiles.map(profile => 
@@ -150,6 +159,11 @@ const Admin = () => {
           ? { ...profile, user_roles: [{ role: newRole }] }
           : profile
       ));
+
+      // If the updated user is the current user, refresh their data
+      if (userId === user?.id) {
+        await refreshUserData();
+      }
 
       toast({
         title: "Success",
@@ -166,8 +180,6 @@ const Admin = () => {
 
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {
-      case 'superadmin':
-        return 'destructive';
       case 'admin':
         return 'default';
       case 'editor':
@@ -201,6 +213,18 @@ const Admin = () => {
             <div className="flex items-center gap-2">
               <Shield className="w-5 h-5 text-primary" />
               <h1 className="text-xl font-semibold">Admin Panel</h1>
+              {isNanopro && (
+                <Badge variant="default" className="bg-gradient-to-r from-purple-500 to-blue-500 text-white">
+                  Super Admin
+                </Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">Welcome, {username}</span>
+              <Button variant="outline" size="sm" onClick={signOut}>
+                <LogOut className="w-4 h-4 mr-2" />
+                Sign Out
+              </Button>
             </div>
           </div>
         </div>
@@ -243,69 +267,71 @@ const Admin = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Users Management */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                User Management
-              </CardTitle>
-              <CardDescription>
-                Manage user roles and permissions
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {profiles.map((profile) => (
-                  <div key={profile.id} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div>
-                      <p className="font-medium">{profile.display_name}</p>
-                      <p className="text-sm text-muted-foreground">@{profile.username}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Joined {new Date(profile.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={getRoleBadgeVariant(profile.user_roles[0]?.role || 'user')}>
-                        {profile.user_roles[0]?.role || 'user'}
-                      </Badge>
-                      {(userRole === 'admin' || userRole === 'superadmin') && profile.user_id !== user?.id && (
-                        <div className="flex gap-2">
-                          {userRole === 'superadmin' && profile.user_roles[0]?.role !== 'admin' && (
+          {/* Users Management - only visible to admin users */}
+          {userRole === 'admin' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  User Management
+                </CardTitle>
+                <CardDescription>
+                  Manage user roles and permissions
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {profiles.map((profile) => (
+                    <div key={profile.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div>
+                        <p className="font-medium">{profile.display_name}</p>
+                        <p className="text-sm text-muted-foreground">@{profile.username}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Joined {new Date(profile.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={getRoleBadgeVariant(profile.user_roles[0]?.role || 'user')}>
+                          {profile.user_roles[0]?.role || 'user'}
+                        </Badge>
+                        {profile.user_id !== user?.id && (
+                          <div className="flex gap-2">
+                            {profile.user_roles[0]?.role !== 'admin' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => updateUserRole(profile.user_id, 'admin')}
+                                className="bg-red-50 hover:bg-red-100 text-red-600 border-red-200"
+                              >
+                                Make Admin
+                              </Button>
+                            )}
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => updateUserRole(profile.user_id, 'admin')}
-                              className="bg-red-50 hover:bg-red-100 text-red-600 border-red-200"
+                              onClick={() => updateUserRole(profile.user_id, 'editor')}
+                              disabled={profile.user_roles[0]?.role === 'editor'}
+                              className="bg-primary/10 hover:bg-primary/20 text-primary border-primary/30"
                             >
-                              Make Admin
+                              ✨ Promote to Editor
                             </Button>
-                          )}
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => updateUserRole(profile.user_id, 'editor')}
-                            disabled={profile.user_roles[0]?.role === 'editor'}
-                            className="bg-primary/10 hover:bg-primary/20 text-primary border-primary/30"
-                          >
-                            ✨ Promote to Editor
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => updateUserRole(profile.user_id, 'user')}
-                            disabled={profile.user_roles[0]?.role === 'user'}
-                          >
-                            Make User
-                          </Button>
-                        </div>
-                      )}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => updateUserRole(profile.user_id, 'user')}
+                              disabled={profile.user_roles[0]?.role === 'user'}
+                            >
+                              Make User
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Comments Management */}
           <Card>
@@ -354,6 +380,13 @@ const Admin = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* WordPress Migration Panel - only visible to admin users */}
+        {userRole === 'admin' && (
+          <div className="mt-8">
+            <WordPressMigrationPanel />
+          </div>
+        )}
       </div>
     </div>
   );

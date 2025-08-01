@@ -16,4 +16,6 @@ export interface BlogPost {
   readTime: string;
   category: string;
   tags: string[];
+  author_id?: string; // Database author ID for edit permissions
+  author_username?: string; // Author username for edit permissions
 }
