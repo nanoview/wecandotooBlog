@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 
 interface Profile {
   id: string;
+  user_id: string;
   username: string;
   display_name: string;
   created_at: string;
@@ -36,15 +37,16 @@ const Admin = () => {
   const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
-    if (!loading && (!user || userRole !== 'admin')) {
-      navigate('/');
+    if (!loading && !user) {
+      navigate('/admin-login');
       return;
     }
 
-    if (user && userRole === 'admin') {
+    // For now, allow any authenticated user until database migration is applied
+    if (user) {
       fetchData();
     }
-  }, [user, userRole, loading, navigate]);
+  }, [user, loading, navigate]);
 
   const fetchData = async () => {
     try {
@@ -133,20 +135,18 @@ const Admin = () => {
     }
   };
 
-  const toggleUserRole = async (userId: string, currentRole: string) => {
-    const newRole = currentRole === 'admin' ? 'user' : 'admin';
-    
+  const updateUserRole = async (userId: string, newRole: 'admin' | 'editor' | 'user') => {
     try {
       const { error } = await supabase
         .from('user_roles')
-        .update({ role: newRole })
+        .update({ role: newRole as any })
         .eq('user_id', userId);
 
       if (error) throw error;
 
       // Update local state
       setProfiles(profiles.map(profile => 
-        profile.id === userId 
+        profile.user_id === userId 
           ? { ...profile, user_roles: [{ role: newRole }] }
           : profile
       ));
@@ -161,6 +161,19 @@ const Admin = () => {
         description: error.message,
         variant: "destructive"
       });
+    }
+  };
+
+  const getRoleBadgeVariant = (role: string) => {
+    switch (role) {
+      case 'superadmin':
+        return 'destructive';
+      case 'admin':
+        return 'default';
+      case 'editor':
+        return 'secondary';
+      default:
+        return 'outline';
     }
   };
 
@@ -218,12 +231,12 @@ const Admin = () => {
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Admin Users</CardTitle>
-              <Shield className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Editors</CardTitle>
+              <Settings className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {profiles.filter(p => p.user_roles[0]?.role === 'admin').length}
+                {profiles.filter(p => p.user_roles[0]?.role === 'editor').length}
               </div>
             </CardContent>
           </Card>
@@ -253,16 +266,40 @@ const Admin = () => {
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant={profile.user_roles[0]?.role === 'admin' ? 'default' : 'secondary'}>
+                      <Badge variant={getRoleBadgeVariant(profile.user_roles[0]?.role || 'user')}>
                         {profile.user_roles[0]?.role || 'user'}
                       </Badge>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => toggleUserRole(profile.id, profile.user_roles[0]?.role || 'user')}
-                      >
-                        {profile.user_roles[0]?.role === 'admin' ? 'Remove Admin' : 'Make Admin'}
-                      </Button>
+                      {(userRole === 'admin' || userRole === 'superadmin') && profile.user_id !== user?.id && (
+                        <div className="flex gap-2">
+                          {userRole === 'superadmin' && profile.user_roles[0]?.role !== 'admin' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => updateUserRole(profile.user_id, 'admin')}
+                              className="bg-red-50 hover:bg-red-100 text-red-600 border-red-200"
+                            >
+                              Make Admin
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => updateUserRole(profile.user_id, 'editor')}
+                            disabled={profile.user_roles[0]?.role === 'editor'}
+                            className="bg-primary/10 hover:bg-primary/20 text-primary border-primary/30"
+                          >
+                            ✨ Promote to Editor
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => updateUserRole(profile.user_id, 'user')}
+                            disabled={profile.user_roles[0]?.role === 'user'}
+                          >
+                            Make User
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
