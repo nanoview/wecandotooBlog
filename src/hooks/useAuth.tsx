@@ -8,6 +8,7 @@ interface AuthContextType {
   userRole: string | null;
   username: string | null;
   loading: boolean;
+  isNanopro: boolean;
   signUp: (email: string, password: string, username: string, displayName: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -23,6 +24,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [username, setUsername] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Helper to check if current user is nanopro
+  const isNanopro = username === 'nanopro';
 
   useEffect(() => {
     // Set up auth state listener
@@ -197,6 +201,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       userRole,
       username,
       loading,
+      isNanopro,
       signUp,
       signIn,
       signOut,

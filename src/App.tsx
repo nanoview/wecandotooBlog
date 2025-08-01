@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,6 +12,8 @@ import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
 import AdminLogin from "./pages/AdminLogin";
 import BlogEditor from "./pages/BlogEditor";
+import Write from "./pages/Write";
+import Edit from "./pages/Edit";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,12 +28,14 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/post/:id" element={<BlogPostDetail />} />
+            <Route path="/edit/:id" element={<Edit />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/admin-login" element={<AdminLogin />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/editor" element={<BlogEditor />} />
+            <Route path="/write" element={<Write />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

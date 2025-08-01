@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, MessageSquare, Shield, Settings, ArrowLeft } from 'lucide-react';
+import { Users, MessageSquare, Shield, Settings, ArrowLeft, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import WordPressMigrationPanel from '@/components/WordPressMigrationPanel';
 
 interface Profile {
   id: string;
@@ -29,7 +30,7 @@ interface Comment {
 }
 
 const Admin = () => {
-  const { user, userRole, username, loading, refreshUserData } = useAuth();
+  const { user, userRole, username, loading, refreshUserData, isNanopro, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -212,6 +213,18 @@ const Admin = () => {
             <div className="flex items-center gap-2">
               <Shield className="w-5 h-5 text-primary" />
               <h1 className="text-xl font-semibold">Admin Panel</h1>
+              {isNanopro && (
+                <Badge variant="default" className="bg-gradient-to-r from-purple-500 to-blue-500 text-white">
+                  Super Admin
+                </Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">Welcome, {username}</span>
+              <Button variant="outline" size="sm" onClick={signOut}>
+                <LogOut className="w-4 h-4 mr-2" />
+                Sign Out
+              </Button>
             </div>
           </div>
         </div>
@@ -367,6 +380,13 @@ const Admin = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* WordPress Migration Panel - only visible to admin users */}
+        {userRole === 'admin' && (
+          <div className="mt-8">
+            <WordPressMigrationPanel />
+          </div>
+        )}
       </div>
     </div>
   );
