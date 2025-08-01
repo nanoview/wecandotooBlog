@@ -166,10 +166,12 @@ const Admin = () => {
 
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {
-      case 'admin':
+      case 'superadmin':
         return 'destructive';
-      case 'editor':
+      case 'admin':
         return 'default';
+      case 'editor':
+        return 'secondary';
       default:
         return 'outline';
     }
@@ -267,8 +269,18 @@ const Admin = () => {
                       <Badge variant={getRoleBadgeVariant(profile.user_roles[0]?.role || 'user')}>
                         {profile.user_roles[0]?.role || 'user'}
                       </Badge>
-                      {userRole === 'admin' && (
+                      {(userRole === 'admin' || userRole === 'superadmin') && profile.user_id !== user?.id && (
                         <div className="flex gap-2">
+                          {userRole === 'superadmin' && profile.user_roles[0]?.role !== 'admin' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => updateUserRole(profile.user_id, 'admin')}
+                              className="bg-red-50 hover:bg-red-100 text-red-600 border-red-200"
+                            >
+                              Make Admin
+                            </Button>
+                          )}
                           <Button
                             size="sm"
                             variant="outline"
