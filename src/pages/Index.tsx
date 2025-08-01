@@ -12,7 +12,10 @@ import { blogPosts, categories } from '@/data/blogData';
 import { useAuth } from '@/hooks/useAuth';
 
 const Index = () => {
-  const { user, userRole, signOut } = useAuth();
+  const { user, userRole, username, signOut } = useAuth();
+
+  // Helper to check if current user is admin
+  const isAdmin = userRole === 'admin';
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
 
@@ -58,32 +61,34 @@ const Index = () => {
               )}
               {user ? (
                 <div className="flex items-center space-x-4">
-                  <div className="hidden sm:flex items-center space-x-2">
-                    <User className="w-4 h-4 text-gray-600" />
-                    <span className="text-sm font-medium text-gray-700">
-                      {user.email?.split('@')[0]}
-                    </span>
-                     <User className="w-4 h-4 text-gray-600" />
-                    <span className="text-sm font-medium text-gray-700">
-                      {user.email?.split('@')[0]}
-                    </span>
+                  {/* Mini profile dropdown */}
+                  <div className="relative group">
+                    <button className="flex items-center space-x-2 focus:outline-none">
+                      <User className="w-6 h-6 text-gray-600" />
+                      <span className="text-sm font-semibold text-gray-700">{username || user.email?.split('@')[0]}</span>
+                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                    </button>
+                    <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity z-50">
+                      <div className="px-4 py-3 border-b border-gray-100">
+                        <div className="font-medium text-gray-900 truncate">{username || user.email?.split('@')[0]}</div>
+                        <div className="text-xs text-gray-500 truncate">{user.email}</div>
+                        <div className="mt-1">
+                          <span className="inline-block px-2 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded-full capitalize">
+                            {userRole || 'user'}
+                          </span>
+                        </div>
+                      </div>
+                      {isAdmin && (
+                        <Link to="/admin" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Admin</Link>
+                      )}
+                      <button
+                        onClick={signOut}
+                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 border-t border-gray-100"
+                      >
+                        <LogOut className="inline w-4 h-4 mr-2 align-text-bottom" />Sign Out
+                      </button>
+                    </div>
                   </div>
-                  {userRole === 'admin' && (
-                    <Link to="/admin">
-                      <Button variant="outline" size="sm">
-                        <Settings className="w-4 h-4 mr-2" />
-                        Admin
-                      </Button>
-                    </Link>
-                  )}
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={signOut}
-                  >
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Sign Out
-                  </Button>
                 </div>
               ) : (
                 <Link to="/auth">
