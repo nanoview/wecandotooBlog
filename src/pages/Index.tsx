@@ -52,6 +52,16 @@ const Index = () => {
               </Link>
               {user ? (
                 <div className="flex items-center space-x-4">
+                  <div className="hidden sm:flex items-center space-x-2">
+                    <User className="w-4 h-4 text-gray-600" />
+                    <span className="text-sm font-medium text-gray-700">
+                      {user.email?.split('@')[0]}
+                    </span>
+                     <User className="w-4 h-4 text-gray-600" />
+                    <span className="text-sm font-medium text-gray-700">
+                      {user.email?.split('@')[0]}
+                    </span>
+                  </div>
                   {userRole === 'admin' && (
                     <Link to="/admin">
                       <Button variant="outline" size="sm">
