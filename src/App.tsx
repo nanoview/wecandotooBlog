@@ -12,6 +12,7 @@ import Contact from "./pages/Contact";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
 import AdminLogin from "./pages/AdminLogin";
+import BlogEditor from "./pages/BlogEditor";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/admin-login" element={<AdminLogin />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/editor" element={<BlogEditor />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
