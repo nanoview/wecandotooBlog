@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 
 interface Profile {
   id: string;
+  user_id: string;
   username: string;
   display_name: string;
   created_at: string;
@@ -134,7 +135,7 @@ const Admin = () => {
     }
   };
 
-  const updateUserRole = async (userId: string, newRole: 'superadmin' | 'admin' | 'editor' | 'user') => {
+  const updateUserRole = async (userId: string, newRole: 'admin' | 'editor' | 'user') => {
     try {
       const { error } = await supabase
         .from('user_roles')
@@ -145,7 +146,7 @@ const Admin = () => {
 
       // Update local state
       setProfiles(profiles.map(profile => 
-        profile.id === userId 
+        profile.user_id === userId 
           ? { ...profile, user_roles: [{ role: newRole }] }
           : profile
       ));
@@ -268,35 +269,35 @@ const Admin = () => {
                       <Badge variant={getRoleBadgeVariant(profile.user_roles[0]?.role || 'user')}>
                         {profile.user_roles[0]?.role || 'user'}
                       </Badge>
-                      {userRole === 'superadmin' && (
-                        <div className="flex gap-1">
-                          {profile.user_roles[0]?.role !== 'admin' && (
+                      {(userRole === 'admin' || userRole === 'superadmin') && profile.user_id !== user?.id && (
+                        <div className="flex gap-2">
+                          {userRole === 'superadmin' && profile.user_roles[0]?.role !== 'admin' && (
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => updateUserRole(profile.id, 'admin')}
+                              onClick={() => updateUserRole(profile.user_id, 'admin')}
+                              className="bg-red-50 hover:bg-red-100 text-red-600 border-red-200"
                             >
                               Make Admin
                             </Button>
                           )}
-                          {profile.user_roles[0]?.role !== 'editor' && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => updateUserRole(profile.id, 'editor')}
-                            >
-                              Make Editor
-                            </Button>
-                          )}
-                          {profile.user_roles[0]?.role !== 'user' && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => updateUserRole(profile.id, 'user')}
-                            >
-                              Make User
-                            </Button>
-                          )}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => updateUserRole(profile.user_id, 'editor')}
+                            disabled={profile.user_roles[0]?.role === 'editor'}
+                            className="bg-primary/10 hover:bg-primary/20 text-primary border-primary/30"
+                          >
+                            ✨ Promote to Editor
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => updateUserRole(profile.user_id, 'user')}
+                            disabled={profile.user_roles[0]?.role === 'user'}
+                          >
+                            Make User
+                          </Button>
                         </div>
                       )}
                     </div>

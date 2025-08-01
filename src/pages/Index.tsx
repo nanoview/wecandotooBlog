@@ -50,6 +50,12 @@ const Index = () => {
               <Link to="/contact" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
                 Contact
               </Link>
+              {userRole === 'editor' && (
+                <Link to="/editor" className="bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 px-4 py-2 rounded-md font-medium transition-colors flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  Write Post
+                </Link>
+              )}
               {user ? (
                 <div className="flex items-center space-x-4">
                   <div className="hidden sm:flex items-center space-x-2">
