@@ -67,7 +67,7 @@ export const WordPressSiteKitIntegration: React.FC = () => {
       // Construct OAuth URL for React app
       const authUrl = new URL('https://accounts.google.com/oauth/authorize');
       authUrl.searchParams.set('client_id', config.oauth_client_id);
-      authUrl.searchParams.set('redirect_uri', 'https://wecandotoo.com/oauth/callback');
+      authUrl.searchParams.set('redirect_uri', config.oauth_redirect_uri || `${window.location.origin}/oauth/callback`);
       authUrl.searchParams.set('response_type', 'code');
       authUrl.searchParams.set('access_type', 'offline');
       authUrl.searchParams.set('prompt', 'consent');
