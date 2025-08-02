@@ -41,8 +41,8 @@ serve(async (req) => {
       throw new Error('Google Site Kit configuration not found');
     }
 
-    if (!config.access_token || !config.adsense_publisher_id) {
-      throw new Error('Google AdSense not configured or not connected');
+    if (!config.access_token || !config.analytics_property_id) {
+      throw new Error('Google Analytics not configured or not connected');
     }
 
     // Check if token needs refresh
@@ -64,13 +64,13 @@ serve(async (req) => {
       config.access_token = updatedConfig.access_token;
     }
 
-    // Fetch AdSense data
-    const adsenseData = await fetchAdSenseData(config.access_token, config.adsense_publisher_id);
+    // Fetch Analytics data
+    const analyticsData = await fetchAnalyticsData(config.access_token, config.analytics_property_id);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        data: adsenseData,
+        data: analyticsData,
         cached: false,
         cached_at: null
       }),
@@ -80,7 +80,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Google AdSense API error:', error);
+    console.error('Google Analytics API error:', error);
     return new Response(
       JSON.stringify({ 
         success: false, 
@@ -133,64 +133,77 @@ async function refreshAccessToken(supabase: any, config: any) {
   }
 }
 
-async function fetchAdSenseData(accessToken: string, publisherId: string) {
+async function fetchAnalyticsData(accessToken: string, propertyId: string) {
   try {
-    // Calculate date range (last 7 days)
+    // Calculate date range (last 30 days)
     const endDate = new Date();
-    const startDate = new Date(endDate.getTime() - (7 * 24 * 60 * 60 * 1000));
+    const startDate = new Date(endDate.getTime() - (30 * 24 * 60 * 60 * 1000));
     
     const formatDate = (date: Date) => {
       return date.toISOString().split('T')[0];
     };
 
-    const metrics = ['ESTIMATED_EARNINGS', 'PAGE_VIEWS', 'CLICKS', 'AD_REQUESTS', 'AD_REQUESTS_CTR'];
-    const metricsParam = metrics.join(',');
-    
-    console.log('Fetching AdSense data for publisher:', publisherId);
+    // Use Google Analytics Data API v1
+    const requestBody = {
+      requests: [{
+        viewId: propertyId,
+        dateRanges: [{
+          startDate: formatDate(startDate),
+          endDate: formatDate(endDate)
+        }],
+        metrics: [
+          { name: 'sessions' },
+          { name: 'pageviews' },
+          { name: 'bounceRate' },
+          { name: 'avgSessionDuration' }
+        ],
+        dimensions: []
+      }]
+    };
 
-    const response = await fetch(`https://www.googleapis.com/adsense/v2/accounts/${publisherId}/reports:generate?startDate=${formatDate(startDate)}&endDate=${formatDate(endDate)}&metrics=${metricsParam}`, {
-      method: 'GET',
+    console.log('Fetching Analytics data for property:', propertyId);
+
+    const response = await fetch(`https://analyticsreporting.googleapis.com/v4/reports:batchGet`, {
+      method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
-      }
+      },
+      body: JSON.stringify(requestBody)
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('AdSense API error response:', errorText);
-      throw new Error(`AdSense API request failed: ${response.status} ${errorText}`);
+      console.error('Analytics API error response:', errorText);
+      throw new Error(`Analytics API request failed: ${response.status} ${errorText}`);
     }
 
     const data = await response.json();
-    console.log('AdSense API response received');
+    console.log('Analytics API response received');
 
     // Parse the response
-    if (!data.rows || data.rows.length === 0) {
-      console.log('No data rows in AdSense response');
+    if (!data.reports || data.reports.length === 0) {
+      console.log('No reports in Analytics response');
       return {
-        estimated_earnings: 0,
+        sessions: 0,
         page_views: 0,
-        clicks: 0,
-        ad_requests: 0,
-        ctr: 0
+        bounce_rate: 0,
+        avg_session_duration: 0
       };
     }
 
-    // Extract metrics from the first row (aggregated data)
-    const row = data.rows[0];
-    const cells = row.cells || [];
+    const report = data.reports[0];
+    const totals = report.data?.totals?.[0]?.values || ['0', '0', '0', '0'];
 
     return {
-      estimated_earnings: parseFloat(cells[0]?.value || '0'),
-      page_views: parseInt(cells[1]?.value || '0'),
-      clicks: parseInt(cells[2]?.value || '0'),
-      ad_requests: parseInt(cells[3]?.value || '0'),
-      ctr: parseFloat(cells[4]?.value || '0')
+      sessions: parseInt(totals[0] || '0'),
+      page_views: parseInt(totals[1] || '0'),
+      bounce_rate: parseFloat(totals[2] || '0'),
+      avg_session_duration: parseFloat(totals[3] || '0')
     };
 
   } catch (error) {
-    console.error('Error fetching AdSense data:', error);
-    throw new Error(`Failed to fetch AdSense data: ${error.message}`);
+    console.error('Error fetching Analytics data:', error);
+    throw new Error(`Failed to fetch Analytics data: ${error.message}`);
   }
 }

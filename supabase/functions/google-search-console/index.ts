@@ -41,8 +41,8 @@ serve(async (req) => {
       throw new Error('Google Site Kit configuration not found');
     }
 
-    if (!config.access_token || !config.adsense_publisher_id) {
-      throw new Error('Google AdSense not configured or not connected');
+    if (!config.access_token || !config.search_console_site_url) {
+      throw new Error('Google Search Console not configured or not connected');
     }
 
     // Check if token needs refresh
@@ -64,13 +64,13 @@ serve(async (req) => {
       config.access_token = updatedConfig.access_token;
     }
 
-    // Fetch AdSense data
-    const adsenseData = await fetchAdSenseData(config.access_token, config.adsense_publisher_id);
+    // Fetch Search Console data
+    const searchConsoleData = await fetchSearchConsoleData(config.access_token, config.search_console_site_url);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        data: adsenseData,
+        data: searchConsoleData,
         cached: false,
         cached_at: null
       }),
@@ -80,7 +80,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Google AdSense API error:', error);
+    console.error('Google Search Console API error:', error);
     return new Response(
       JSON.stringify({ 
         success: false, 
@@ -133,64 +133,85 @@ async function refreshAccessToken(supabase: any, config: any) {
   }
 }
 
-async function fetchAdSenseData(accessToken: string, publisherId: string) {
+async function fetchSearchConsoleData(accessToken: string, siteUrl: string) {
   try {
-    // Calculate date range (last 7 days)
+    // Calculate date range (last 30 days)
     const endDate = new Date();
-    const startDate = new Date(endDate.getTime() - (7 * 24 * 60 * 60 * 1000));
+    const startDate = new Date(endDate.getTime() - (30 * 24 * 60 * 60 * 1000));
     
     const formatDate = (date: Date) => {
       return date.toISOString().split('T')[0];
     };
 
-    const metrics = ['ESTIMATED_EARNINGS', 'PAGE_VIEWS', 'CLICKS', 'AD_REQUESTS', 'AD_REQUESTS_CTR'];
-    const metricsParam = metrics.join(',');
-    
-    console.log('Fetching AdSense data for publisher:', publisherId);
+    const requestBody = {
+      startDate: formatDate(startDate),
+      endDate: formatDate(endDate),
+      dimensions: [],
+      rowLimit: 1,
+      startRow: 0
+    };
 
-    const response = await fetch(`https://www.googleapis.com/adsense/v2/accounts/${publisherId}/reports:generate?startDate=${formatDate(startDate)}&endDate=${formatDate(endDate)}&metrics=${metricsParam}`, {
-      method: 'GET',
+    console.log('Fetching Search Console data for site:', siteUrl);
+
+    // Encode the site URL for the API call
+    const encodedSiteUrl = encodeURIComponent(siteUrl);
+    
+    const response = await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodedSiteUrl}/searchAnalytics/query`, {
+      method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
-      }
+      },
+      body: JSON.stringify(requestBody)
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('AdSense API error response:', errorText);
-      throw new Error(`AdSense API request failed: ${response.status} ${errorText}`);
+      console.error('Search Console API error response:', errorText);
+      throw new Error(`Search Console API request failed: ${response.status} ${errorText}`);
     }
 
     const data = await response.json();
-    console.log('AdSense API response received');
+    console.log('Search Console API response received');
 
     // Parse the response
     if (!data.rows || data.rows.length === 0) {
-      console.log('No data rows in AdSense response');
+      console.log('No data rows in Search Console response');
       return {
-        estimated_earnings: 0,
-        page_views: 0,
+        impressions: 0,
         clicks: 0,
-        ad_requests: 0,
-        ctr: 0
+        ctr: 0,
+        average_position: 0
       };
     }
 
-    // Extract metrics from the first row (aggregated data)
-    const row = data.rows[0];
-    const cells = row.cells || [];
+    // Aggregate all rows for totals
+    let totalImpressions = 0;
+    let totalClicks = 0;
+    let totalCtr = 0;
+    let totalPosition = 0;
+
+    data.rows.forEach((row: any) => {
+      totalImpressions += row.impressions || 0;
+      totalClicks += row.clicks || 0;
+      totalCtr += row.ctr || 0;
+      totalPosition += row.position || 0;
+    });
+
+    // Calculate averages
+    const rowCount = data.rows.length;
+    const avgCtr = rowCount > 0 ? totalCtr / rowCount : 0;
+    const avgPosition = rowCount > 0 ? totalPosition / rowCount : 0;
 
     return {
-      estimated_earnings: parseFloat(cells[0]?.value || '0'),
-      page_views: parseInt(cells[1]?.value || '0'),
-      clicks: parseInt(cells[2]?.value || '0'),
-      ad_requests: parseInt(cells[3]?.value || '0'),
-      ctr: parseFloat(cells[4]?.value || '0')
+      impressions: totalImpressions,
+      clicks: totalClicks,
+      ctr: avgCtr,
+      average_position: avgPosition
     };
 
   } catch (error) {
-    console.error('Error fetching AdSense data:', error);
-    throw new Error(`Failed to fetch AdSense data: ${error.message}`);
+    console.error('Error fetching Search Console data:', error);
+    throw new Error(`Failed to fetch Search Console data: ${error.message}`);
   }
 }
