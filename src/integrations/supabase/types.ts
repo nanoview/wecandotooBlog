@@ -97,6 +97,45 @@ export type Database = {
           },
         ]
       }
+      google_api_cache: {
+        Row: {
+          api_type: string
+          cache_key: string
+          created_at: string
+          endpoint: string
+          expires_at: string
+          fetch_duration_ms: number | null
+          id: string
+          response_data: Json
+          response_size_bytes: number | null
+          updated_at: string
+        }
+        Insert: {
+          api_type: string
+          cache_key: string
+          created_at?: string
+          endpoint: string
+          expires_at: string
+          fetch_duration_ms?: number | null
+          id?: string
+          response_data: Json
+          response_size_bytes?: number | null
+          updated_at?: string
+        }
+        Update: {
+          api_type?: string
+          cache_key?: string
+          created_at?: string
+          endpoint?: string
+          expires_at?: string
+          fetch_duration_ms?: number | null
+          id?: string
+          response_data?: Json
+          response_size_bytes?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       google_site_kit: {
         Row: {
           adsense_account_id: string | null
@@ -106,6 +145,9 @@ export type Database = {
           analytics_measurement_id: string | null
           analytics_property_id: string | null
           analytics_view_id: string | null
+          api_last_fetched: string | null
+          api_quota_reset_time: string | null
+          api_rate_limit_remaining: number | null
           configured_by: string | null
           connection_status: string | null
           created_at: string
@@ -139,6 +181,9 @@ export type Database = {
           analytics_measurement_id?: string | null
           analytics_property_id?: string | null
           analytics_view_id?: string | null
+          api_last_fetched?: string | null
+          api_quota_reset_time?: string | null
+          api_rate_limit_remaining?: number | null
           configured_by?: string | null
           connection_status?: string | null
           created_at?: string
@@ -172,6 +217,9 @@ export type Database = {
           analytics_measurement_id?: string | null
           analytics_property_id?: string | null
           analytics_view_id?: string | null
+          api_last_fetched?: string | null
+          api_quota_reset_time?: string | null
+          api_rate_limit_remaining?: number | null
           configured_by?: string | null
           connection_status?: string | null
           created_at?: string
@@ -197,15 +245,85 @@ export type Database = {
           site_verification_method?: string | null
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "google_site_kit_configured_by_fkey"
-            columns: ["configured_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          }
-        ]
+        Relationships: []
+      }
+      google_site_kit_config: {
+        Row: {
+          access_token: string | null
+          adsense_customer_id: string | null
+          adsense_publisher_id: string | null
+          analytics_property_id: string | null
+          analytics_view_id: string | null
+          connection_status: string | null
+          created_at: string
+          enable_adsense: boolean | null
+          enable_analytics: boolean | null
+          enable_search_console: boolean | null
+          error_message: string | null
+          id: string
+          last_sync_at: string | null
+          oauth_client_id: string
+          oauth_client_secret: string
+          oauth_redirect_uri: string
+          refresh_token: string | null
+          search_console_site_url: string | null
+          search_console_verified: boolean | null
+          site_url: string
+          token_expires_at: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          access_token?: string | null
+          adsense_customer_id?: string | null
+          adsense_publisher_id?: string | null
+          analytics_property_id?: string | null
+          analytics_view_id?: string | null
+          connection_status?: string | null
+          created_at?: string
+          enable_adsense?: boolean | null
+          enable_analytics?: boolean | null
+          enable_search_console?: boolean | null
+          error_message?: string | null
+          id?: string
+          last_sync_at?: string | null
+          oauth_client_id: string
+          oauth_client_secret: string
+          oauth_redirect_uri?: string
+          refresh_token?: string | null
+          search_console_site_url?: string | null
+          search_console_verified?: boolean | null
+          site_url?: string
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          access_token?: string | null
+          adsense_customer_id?: string | null
+          adsense_publisher_id?: string | null
+          analytics_property_id?: string | null
+          analytics_view_id?: string | null
+          connection_status?: string | null
+          created_at?: string
+          enable_adsense?: boolean | null
+          enable_analytics?: boolean | null
+          enable_search_console?: boolean | null
+          error_message?: string | null
+          id?: string
+          last_sync_at?: string | null
+          oauth_client_id?: string
+          oauth_client_secret?: string
+          oauth_redirect_uri?: string
+          refresh_token?: string | null
+          search_console_site_url?: string | null
+          search_console_verified?: boolean | null
+          site_url?: string
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -266,6 +384,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      clean_expired_google_cache: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["app_role"]
@@ -276,6 +398,34 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
         }
         Returns: boolean
+      }
+      is_nanopro: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_superadmin: {
+        Args: { _user_id?: string }
+        Returns: boolean
+      }
+      nanopro_get_all_user_roles: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          user_id: string
+          username: string
+          role: Database["public"]["Enums"]["app_role"]
+          created_at: string
+        }[]
+      }
+      nanopro_set_user_role: {
+        Args: {
+          target_user_id: string
+          new_role: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: boolean
+      }
+      setup_current_user_as_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
     }
     Enums: {
