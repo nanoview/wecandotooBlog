@@ -12,6 +12,32 @@ dist
 dist-ssr
 *.local
 
+# Environment variables and secrets
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.env.*.local
+
+# API Keys and OAuth secrets
+google-credentials.json
+oauth-credentials.json
+service-account.json
+**/secrets/
+**/credentials/
+
+# JWT tokens and authentication
+jwt-secret
+auth-tokens
+*.jwt
+*.token
+
+# Google OAuth and API keys
+google-client-secret
+google-oauth-config.json
+google-service-account.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
