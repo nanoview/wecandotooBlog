@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import BlogPost from '@/components/BlogPost';
 import CategoryFilter from '@/components/CategoryFilter';
+import GoogleAd from '@/components/GoogleAd';
 import { blogPosts as fallbackPosts, categories as fallbackCategories } from '@/data/blogData';
 import { useAuth } from '@/hooks/useAuth';
 import { fetchBlogPosts, fetchCategories, searchBlogPosts, fetchBlogPostsByCategory } from '@/services/blogService';
@@ -404,6 +405,13 @@ const Index = () => {
               )}
             </div>
           )}
+        </div>
+      </section>
+
+      {/* Ad - Between blog posts and newsletter */}
+      <section className="py-8 px-4 bg-gray-50">
+        <div className="max-w-6xl mx-auto">
+          <GoogleAd slot="banner" className="flex justify-center" />
         </div>
       </section>
 

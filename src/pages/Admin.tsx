@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, MessageSquare, Shield, Settings, ArrowLeft, LogOut } from 'lucide-react';
+import { Users, MessageSquare, Shield, Settings, ArrowLeft, LogOut, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import WordPressMigrationPanel from '@/components/WordPressMigrationPanel';
+import WordPressSiteKitIntegration from '@/components/WordPressSiteKitIntegration';
+import { SupabaseGoogleDashboard } from '@/components/SupabaseGoogleDashboard';
 
 interface Profile {
   id: string;
@@ -231,11 +234,36 @@ const Admin = () => {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="overview" className="flex items-center gap-2">
+              <Shield className="w-4 h-4" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="dashboard" className="flex items-center gap-2">
+              <BarChart3 className="w-4 h-4" />
+              Analytics
+            </TabsTrigger>
+            <TabsTrigger value="google" className="flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              Google Setup
+            </TabsTrigger>
+            <TabsTrigger value="migration" className="flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              Migration
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              Settings
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-6">
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Users</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -387,6 +415,45 @@ const Admin = () => {
             <WordPressMigrationPanel />
           </div>
         )}
+      </TabsContent>
+
+      <TabsContent value="dashboard" className="space-y-6">
+        <SupabaseGoogleDashboard />
+      </TabsContent>
+
+      <TabsContent value="google" className="space-y-6">
+        <WordPressSiteKitIntegration />
+        {/* Google Site Kit setup and configuration */}
+      </TabsContent>
+
+      <TabsContent value="migration" className="space-y-6">
+        {userRole === 'admin' ? (
+          <WordPressMigrationPanel />
+        ) : (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <h3 className="text-lg font-medium mb-2">Access Restricted</h3>
+              <p className="text-gray-600">Only administrators can access migration tools.</p>
+            </CardContent>
+          </Card>
+        )}
+      </TabsContent>
+
+      <TabsContent value="settings" className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>System Settings</CardTitle>
+            <CardDescription>
+              Configure system-wide settings and preferences
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-600">Additional settings panel coming soon...</p>
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+    </Tabs>
       </div>
     </div>
   );

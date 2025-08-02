@@ -9,6 +9,7 @@ import { blogPosts as fallbackPosts } from '@/data/blogData';
 import BlogPost from '@/components/BlogPost';
 import { Comments } from '@/components/Comments';
 import BlockEditor, { Block } from '@/components/BlockEditor';
+import GoogleAd from '@/components/GoogleAd';
 import { fetchBlogPost, fetchBlogPostsByCategory } from '@/services/blogService';
 import { BlogPost as BlogPostType } from '@/types/blog';
 import { useToast } from '@/hooks/use-toast';
@@ -273,6 +274,11 @@ const BlogPostDetail = () => {
           )}
         </div>
 
+        {/* Ad - After content, before author bio */}
+        <div className="my-8">
+          <GoogleAd slot="rectangle" className="flex justify-center" />
+        </div>
+
         {/* Author Bio */}
         <Card className="mt-12 bg-gradient-to-r from-blue-50 to-purple-50 border-0">
           <CardContent className="p-8">
@@ -308,6 +314,11 @@ const BlogPostDetail = () => {
               {relatedPosts.map((relatedPost) => (
                 <BlogPost key={relatedPost.id} post={relatedPost} />
               ))}
+            </div>
+            
+            {/* Ad - After related posts */}
+            <div className="mt-12">
+              <GoogleAd slot="banner" className="flex justify-center" />
             </div>
           </div>
         </section>

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Google OAuth Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .button {
+      background-color: #4285f4;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      text-decoration: none;
+      display: inline-block;
+      margin: 10px 0;
+    }
+    .button:hover {
+      background-color: #3367d6;
+    }
+    .code {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 4px;
+      font-family: monospace;
+      word-break: break-all;
+      margin: 10px 0;
+    }
+    .status {
+      padding: 10px;
+      border-radius: 4px;
+      margin: 10px 0;
+    }
+    .success { background-color: #d4edda; color: #155724; }
+    .error { background-color: #f8d7da; color: #721c24; }
+    .info { background-color: #cce7ff; color: #004085; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔐 Google OAuth Test Tool</h1>
+    <p>This tool helps you test the Google OAuth flow for your Google Site Kit integration.</p>
+    
+    <div id="status"></div>
+    
+    <h2>OAuth Configuration</h2>
+    <div class="code">
+      <strong>Client ID:</strong> 622861962504-fokjrr569rbutuf3d894r5ldtvjestk9.apps.googleusercontent.com<br>
+      <strong>Redirect URI:</strong> http://localhost:8082/oauth/callback<br>
+      <strong>Scopes:</strong> adsense.readonly, analytics.readonly, webmasters.readonly, openid, email, profile
+    </div>
+    
+    <h2>Test OAuth Flow</h2>
+    <button class="button" onclick="startOAuth()">🚀 Start Google OAuth Flow</button>
+    
+    <h2>Current Status</h2>
+    <div id="authStatus">
+      <div class="info">Click the button above to start the OAuth flow</div>
+    </div>
+    
+    <h2>Debug Information</h2>
+    <div id="debugInfo"></div>
+  </div>
+
+  <script>
+    // Check for OAuth callback parameters
+    window.addEventListener('DOMContentLoaded', function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get('code');
+      const error = urlParams.get('error');
+      const state = urlParams.get('state');
+      
+      if (code) {
+        document.getElementById('authStatus').innerHTML = 
+          '<div class="success">✅ OAuth code received! Code: ' + code + '</div>';
+        document.getElementById('debugInfo').innerHTML = 
+          '<div class="code">Authorization Code: ' + code + '<br>State: ' + (state || 'none') + '</div>';
+      } else if (error) {
+        document.getElementById('authStatus').innerHTML = 
+          '<div class="error">❌ OAuth error: ' + error + '</div>';
+      }
+      
+      // Show current URL for debugging
+      document.getElementById('debugInfo').innerHTML += 
+        '<div class="code">Current URL: ' + window.location.href + '</div>';
+    });
+    
+    function startOAuth() {
+      const clientId = '622861962504-fokjrr569rbutuf3d894r5ldtvjestk9.apps.googleusercontent.com';
+      const redirectUri = 'http://localhost:8082/oauth/test'; // Use this test page as redirect
+      const scopes = [
+        'https://www.googleapis.com/auth/adsense.readonly',
+        'https://www.googleapis.com/auth/analytics.readonly',
+        'https://www.googleapis.com/auth/webmasters.readonly',
+        'openid',
+        'email',
+        'profile'
+      ].join(' ');
+      
+      const state = Math.random().toString(36).substring(2, 15);
+      localStorage.setItem('oauth_state', state);
+      
+      const authUrl = 'https://accounts.google.com/oauth/authorize?' +
+        'client_id=' + encodeURIComponent(clientId) +
+        '&redirect_uri=' + encodeURIComponent(redirectUri) +
+        '&response_type=code' +
+        '&scope=' + encodeURIComponent(scopes) +
+        '&access_type=offline' +
+        '&prompt=consent' +
+        '&state=' + encodeURIComponent(state);
+      
+      document.getElementById('authStatus').innerHTML = 
+        '<div class="info">🔄 Redirecting to Google OAuth...</div>';
+      
+      window.location.href = authUrl;
+    }
+  </script>
+</body>
+</html>

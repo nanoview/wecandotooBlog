@@ -111,8 +111,8 @@ export const fetchBlogPosts = async (limit?: number): Promise<BlogPost[]> => {
   }
 };
 
-// Fetch a single blog post by ID (supports both UUID and numeric IDs)
-export const fetchBlogPost = async (id: string): Promise<BlogPost | null> => {
+// Fetch a single blog post by ID with original database ID (supports both UUID and numeric IDs)
+export const fetchBlogPostWithDbId = async (id: string): Promise<{ post: BlogPost; dbId: string } | null> => {
   try {
     console.log('🔍 Fetching blog post with ID:', id);
     
@@ -133,6 +133,7 @@ export const fetchBlogPost = async (id: string): Promise<BlogPost | null> => {
           tags,
           published_at,
           created_at,
+          author_id,
           profiles:author_id (
             username,
             display_name,
@@ -149,7 +150,7 @@ export const fetchBlogPost = async (id: string): Promise<BlogPost | null> => {
         return null;
       }
 
-      return data ? transformDatabasePost(data) : null;
+      return data ? { post: transformDatabasePost(data), dbId: data.id } : null;
     } else {
       // For numeric IDs, we need to fetch all posts and find by transformed ID
       console.log('🔢 Searching for numeric ID in database posts...');
@@ -191,7 +192,7 @@ export const fetchBlogPost = async (id: string): Promise<BlogPost | null> => {
           
           if (transformedPost.id === parseInt(id)) {
             console.log('✅ Found post by numeric ID:', transformedPost.title);
-            return transformedPost;
+            return { post: transformedPost, dbId: post.id };
           }
         }
       }
@@ -203,6 +204,12 @@ export const fetchBlogPost = async (id: string): Promise<BlogPost | null> => {
     console.error('❌ Blog service error:', error);
     return null;
   }
+};
+
+// Fetch a single blog post by ID (supports both UUID and numeric IDs) - original function
+export const fetchBlogPost = async (id: string): Promise<BlogPost | null> => {
+  const result = await fetchBlogPostWithDbId(id);
+  return result ? result.post : null;
 };
 
 // Fetch blog posts by category
@@ -406,12 +413,15 @@ export const updateBlogPost = async (
     excerpt?: string;
     category?: string;
     tags?: string[];
-    featuredImage?: string;
+    featured_image?: string;
+    read_time?: number;
     status?: 'draft' | 'published';
+    author_id?: string;
+    id?: string;
   }
 ): Promise<BlogPost | null> => {
   try {
-    console.log('📝 Updating blog post:', postId);
+    console.log('📝 Updating blog post:', postId, postData);
     
     // Get current user
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -421,21 +431,66 @@ export const updateBlogPost = async (
       throw new Error('You must be logged in to update a post');
     }
 
+    // Prepare update data with correct field names for database
     const updateData: any = {
-      ...postData,
       updated_at: new Date().toISOString()
     };
+
+    if (postData.title !== undefined) updateData.title = postData.title;
+    if (postData.content !== undefined) updateData.content = postData.content;
+    if (postData.excerpt !== undefined) updateData.excerpt = postData.excerpt;
+    if (postData.category !== undefined) updateData.category = postData.category;
+    if (postData.tags !== undefined) updateData.tags = postData.tags;
+    if (postData.featured_image !== undefined) updateData.featured_image = postData.featured_image;
+    if (postData.read_time !== undefined) updateData.read_time = postData.read_time;
+    if (postData.status !== undefined) updateData.status = postData.status;
 
     // If publishing for the first time, set published_at
     if (postData.status === 'published') {
       updateData.published_at = new Date().toISOString();
     }
 
+    console.log('📝 Sending update data to database:', updateData);
+
+    // First, check if the post exists and get current post data
+    const { data: currentPost, error: fetchError } = await supabase
+      .from('blog_posts')
+      .select('author_id')
+      .eq('id', postId)
+      .single();
+
+    if (fetchError) {
+      console.error('❌ Error fetching current post:', fetchError);
+      throw new Error('Post not found');
+    }
+
+    // Check permissions: user must be author, have editor role, or be nanopro
+    const { data: userProfile } = await supabase
+      .from('profiles')
+      .select('username')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    const { data: userRole } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    const isAuthor = currentPost.author_id === user.id;
+    const isEditor = userRole?.role === 'editor';
+    const isNanopro = userProfile?.username === 'nanopro';
+
+    if (!isAuthor && !isEditor && !isNanopro) {
+      throw new Error('You do not have permission to edit this post');
+    }
+
+    console.log('✅ Permission check passed. Updating post...');
+
     const { data, error } = await supabase
       .from('blog_posts')
       .update(updateData)
       .eq('id', postId)
-      .eq('author_id', user.id) // Ensure user can only update their own posts
       .select()
       .single();
 

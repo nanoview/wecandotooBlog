@@ -97,6 +97,116 @@ export type Database = {
           },
         ]
       }
+      google_site_kit: {
+        Row: {
+          adsense_account_id: string | null
+          adsense_customer_id: string | null
+          adsense_publisher_id: string | null
+          adsense_site_id: string | null
+          analytics_measurement_id: string | null
+          analytics_property_id: string | null
+          analytics_view_id: string | null
+          configured_by: string | null
+          connection_status: string | null
+          created_at: string
+          enable_adsense: boolean | null
+          enable_analytics: boolean | null
+          enable_auto_ads: boolean | null
+          enable_search_console: boolean | null
+          enabled_apis: string[] | null
+          error_message: string | null
+          id: string
+          is_connected: boolean | null
+          last_sync_at: string | null
+          oauth_access_token: string | null
+          oauth_client_id: string | null
+          oauth_client_secret: string | null
+          oauth_expires_at: string | null
+          oauth_redirect_uri: string | null
+          oauth_refresh_token: string | null
+          oauth_scopes: string[] | null
+          search_console_site_url: string | null
+          search_console_verified: boolean | null
+          site_verification_code: string | null
+          site_verification_method: string | null
+          updated_at: string
+        }
+        Insert: {
+          adsense_account_id?: string | null
+          adsense_customer_id?: string | null
+          adsense_publisher_id?: string | null
+          adsense_site_id?: string | null
+          analytics_measurement_id?: string | null
+          analytics_property_id?: string | null
+          analytics_view_id?: string | null
+          configured_by?: string | null
+          connection_status?: string | null
+          created_at?: string
+          enable_adsense?: boolean | null
+          enable_analytics?: boolean | null
+          enable_auto_ads?: boolean | null
+          enable_search_console?: boolean | null
+          enabled_apis?: string[] | null
+          error_message?: string | null
+          id?: string
+          is_connected?: boolean | null
+          last_sync_at?: string | null
+          oauth_access_token?: string | null
+          oauth_client_id?: string | null
+          oauth_client_secret?: string | null
+          oauth_expires_at?: string | null
+          oauth_redirect_uri?: string | null
+          oauth_refresh_token?: string | null
+          oauth_scopes?: string[] | null
+          search_console_site_url?: string | null
+          search_console_verified?: boolean | null
+          site_verification_code?: string | null
+          site_verification_method?: string | null
+          updated_at?: string
+        }
+        Update: {
+          adsense_account_id?: string | null
+          adsense_customer_id?: string | null
+          adsense_publisher_id?: string | null
+          adsense_site_id?: string | null
+          analytics_measurement_id?: string | null
+          analytics_property_id?: string | null
+          analytics_view_id?: string | null
+          configured_by?: string | null
+          connection_status?: string | null
+          created_at?: string
+          enable_adsense?: boolean | null
+          enable_analytics?: boolean | null
+          enable_auto_ads?: boolean | null
+          enable_search_console?: boolean | null
+          enabled_apis?: string[] | null
+          error_message?: string | null
+          id?: string
+          is_connected?: boolean | null
+          last_sync_at?: string | null
+          oauth_access_token?: string | null
+          oauth_client_id?: string | null
+          oauth_client_secret?: string | null
+          oauth_expires_at?: string | null
+          oauth_redirect_uri?: string | null
+          oauth_refresh_token?: string | null
+          oauth_scopes?: string[] | null
+          search_console_site_url?: string | null
+          search_console_verified?: boolean | null
+          site_verification_code?: string | null
+          site_verification_method?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_site_kit_configured_by_fkey"
+            columns: ["configured_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null

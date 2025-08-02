@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import PostEditor from '@/components/PostEditor';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { fetchBlogPost, updateBlogPost } from '@/services/blogService';
+import { fetchBlogPost, fetchBlogPostWithDbId, updateBlogPost } from '@/services/blogService';
 import { BlogPost as BlogPostType } from '@/types/blog';
 
 const Edit = () => {
@@ -14,6 +14,7 @@ const Edit = () => {
   const { user, userRole, username } = useAuth();
   const { toast } = useToast();
   const [post, setPost] = useState<BlogPostType | null>(null);
+  const [originalPostId, setOriginalPostId] = useState<string | null>(null); // Store the original UUID
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showEditor, setShowEditor] = useState(false);
@@ -34,12 +35,15 @@ const Edit = () => {
       setLoading(true);
       setError(null);
 
-      const postData = await fetchBlogPost(postId);
+      const result = await fetchBlogPostWithDbId(postId);
       
-      if (!postData) {
+      if (!result) {
         setError('Post not found');
         return;
       }
+
+      const { post: postData, dbId } = result;
+      setOriginalPostId(dbId); // Store the original database UUID
 
       // Check if user has permission to edit this post
       const canEdit = user && (
@@ -68,10 +72,13 @@ const Edit = () => {
 
   const handleSave = async (postData: any) => {
     try {
-      if (!id) throw new Error('No post ID provided');
+      if (!originalPostId) throw new Error('No post ID provided');
       
-      // Update the post
-      await updateBlogPost(id, postData);
+      console.log('Saving post with database ID:', originalPostId);
+      console.log('Post data:', postData);
+      
+      // Update the post using the original database UUID
+      await updateBlogPost(originalPostId, postData);
       
       toast({
         title: "Post updated!",
@@ -138,7 +145,7 @@ const Edit = () => {
         onClose={handleClose}
         onSave={handleSave}
         initialPost={{
-          id: id,
+          id: originalPostId, // Use the original database UUID
           title: post.title,
           excerpt: post.excerpt,
           content: post.content,
