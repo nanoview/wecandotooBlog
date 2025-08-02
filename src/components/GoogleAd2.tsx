@@ -1,15 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { googleConfig } from '@/config/google';
 
 declare global {
   interface Window {
     adsbygoogle: any[];
   }
-}
-
-interface AdSize {
-  width: number | 'auto';
-  height: number | 'auto';
 }
 
 interface GoogleAdProps {
@@ -19,7 +14,12 @@ interface GoogleAdProps {
   className?: string;
 }
 
-function GoogleAd({ slot, layout = 'responsive', style = {}, className = '' }: GoogleAdProps) {
+const GoogleAd = ({
+  slot,
+  layout = 'responsive',
+  style = {},
+  className = ''
+}: GoogleAdProps) => {
   const adConfig = {
     isEnabled: !!googleConfig.adsenseClientId,
     clientId: googleConfig.adsenseClientId || 'ca-pub-2959602333047653'
@@ -47,42 +47,19 @@ function GoogleAd({ slot, layout = 'responsive', style = {}, className = '' }: G
     }
   }, [adConfig.isEnabled]);
 
-  const [adFailed, setAdFailed] = useState(false);
-
-  // Function to handle ad load errors
-  useEffect(() => {
-    const handleAdError = () => setAdFailed(true);
-    window.addEventListener('error', handleAdError);
-    return () => window.removeEventListener('error', handleAdError);
-  }, []);
-
-  if (!adConfig.isEnabled || adFailed) {
+  if (!adConfig.isEnabled) {
     const size = getAdSize();
-    const mockContent = layout === 'banner' ? (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <div className="text-blue-600 font-semibold mb-2">Featured Sponsor</div>
-          <div className="text-gray-800 text-lg font-medium mb-1">Your Brand Here</div>
-          <div className="text-gray-600 text-sm">Reach our engaged audience</div>
-        </div>
-      </div>
-    ) : (
-      <div className="flex flex-col items-center justify-center h-full">
-        <p className="text-sm text-gray-600 mb-1">Advertisement</p>
-        <p className="text-xs text-gray-500">{layout} format</p>
-      </div>
-    );
-
     return (
       <div 
-        className={`border border-gray-200 bg-gray-50 rounded-lg p-4 text-center ${className}`}
+        className={`border-2 border-dashed border-gray-300 p-4 text-center text-gray-500 ${className}`}
         style={{
           width: size.width,
           height: size.height,
           ...style
         }}
       >
-        {mockContent}
+        <p className="text-sm">Ad Space</p>
+        <p className="text-xs mt-1">Layout: {layout}</p>
       </div>
     );
   }
@@ -108,6 +85,6 @@ function GoogleAd({ slot, layout = 'responsive', style = {}, className = '' }: G
       />
     </div>
   );
-}
+};
 
 export default GoogleAd;

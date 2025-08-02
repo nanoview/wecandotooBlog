@@ -1,58 +1,42 @@
-# Supabase Backend Deployment Guide
+# Simplified Google AdSense Integration
 
-Your application now uses **Supabase as the complete backend solution**. No separate backend server needed!
+Your application now uses **simple Google AdSense** for automatic ad display. No complex OAuth or API integrations needed!
 
-## 🏗️ Architecture Overview
+## � Simple Architecture
 
 ```
 React Frontend (Port 8080)
-    ↓ Fetch calls
-Supabase Edge Functions (Serverless)
-    ↓ Google APIs
-Google Services (AdSense, Analytics, Search Console)
-    ↓ Data Storage
-Supabase Database (PostgreSQL)
+    ↓ AdSense JavaScript
+Google AdSense (Automatic Ad Placement)
+    ↓ Revenue Tracking
+Google AdSense Dashboard
 ```
 
-## 🚀 Deployment Steps
+## 🚀 What's Already Set Up
 
-### 1. Deploy Edge Function via Supabase Dashboard
+### ✅ Auto Ads Component
+- `GoogleAutoAds` loaded in `App.tsx`
+- Automatically places ads on all pages
+- Uses your Publisher ID: `ca-pub-2959602333047653`
 
-Since CLI installation had issues, use the web interface:
+### ✅ Manual Ad Components
+- `SimpleAd` - For specific ad placements
+- `AutoAdSense` - Alternative manual component
+- Easy to add anywhere in your React components
 
-1. **Go to Supabase Dashboard**: https://supabase.com/dashboard
-2. **Select your project**
-3. **Navigate to Functions** (in left sidebar)
-4. **Create New Function**:
-   - Name: `google-adsense`
-   - Copy the code from `supabase/functions/google-adsense/index.ts`
-   - Paste into the editor
-   - Click "Deploy"
+## 📝 How to Use
 
-### 2. Set Environment Variables
+### Automatic Ads (Already Active)
+Your site automatically loads Google's ad script and places ads optimally. No additional code needed!
 
-In Supabase Dashboard → Settings → Environment Variables:
-```
-SUPABASE_URL=your_project_url
-SUPABASE_ANON_KEY=your_anon_key
-```
+### Manual Ad Placement
+```tsx
+import SimpleAd from '@/components/SimpleAd';
 
-### 3. Create Additional Edge Functions
-
-Repeat the same process for:
-- `google-analytics` - For Analytics API calls
-- `google-search-console` - For Search Console API calls
-
-## 🔧 Frontend Configuration
-
-Your React app is already configured to use Supabase:
-
-```typescript
-// In googleSiteKitService.ts
-private baseUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
-
-// Calls Edge Functions like:
-await fetch(`${this.baseUrl}/google-adsense`)
+// Add to any component
+<SimpleAd format="banner" />
+<SimpleAd format="rectangle" />
+<SimpleAd format="auto" />
 ```
 
 ## 📊 What You Get

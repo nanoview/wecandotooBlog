@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import GoogleSiteVerification from "@/components/GoogleSiteVerification";
+import GoogleAutoAds from "@/components/GoogleAutoAds";
 import { googleConfig } from "@/config/google";
 import Index from "./pages/Index";
 import BlogPostDetail from "./pages/BlogPostDetail";
@@ -31,10 +32,12 @@ const App = () => (
           verificationCode={googleConfig.siteVerification}
           adsenseClientId={googleConfig.adsenseClientId}
         />
+        <GoogleAutoAds />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/post/:id" element={<BlogPostDetail />} />
+            <Route path="/:slug" element={<BlogPostDetail />} />
+            <Route path="/post/:id" element={<BlogPostDetail />} /> {/* Legacy ID support */}
             <Route path="/edit/:id" element={<Edit />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />

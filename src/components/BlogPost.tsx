@@ -37,7 +37,7 @@ const BlogPost = ({ post }: BlogPostProps) => {
         
         <div className="p-6 space-y-4">
           <div className="space-y-2">
-            <Link to={`/post/${post.id}`}>
+            <Link to={post.slug ? `/${post.slug}` : `/post/${post.id}`}>
               <h2 className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors duration-200 line-clamp-2">
                 {post.title}
               </h2>
@@ -78,7 +78,7 @@ const BlogPost = ({ post }: BlogPostProps) => {
                   </Button>
                 </Link>
               )}
-              <Link to={`/post/${post.id}`}>
+              <Link to={post.slug ? `/${post.slug}` : `/post/${post.id}`}>
                 <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 p-0">
                   Read More <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>

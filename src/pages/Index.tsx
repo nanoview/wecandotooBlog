@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Calendar, User, Tag, ChevronRight, Star, LogIn, Settings, LogOut, Loader2, PenTool } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import BlogPost from '@/components/BlogPost';
 import CategoryFilter from '@/components/CategoryFilter';
 import GoogleAd from '@/components/GoogleAd';
-import { blogPosts as fallbackPosts, categories as fallbackCategories } from '@/data/blogData';
+import { categories as fallbackCategories } from '@/data/blogData';
 import { useAuth } from '@/hooks/useAuth';
 import { fetchBlogPosts, fetchCategories, searchBlogPosts, fetchBlogPostsByCategory } from '@/services/blogService';
 import { BlogPost as BlogPostType } from '@/types/blog';
@@ -24,6 +24,8 @@ const Index = () => {
   const [categories, setCategories] = useState<string[]>(['All']);
   const [loading, setLoading] = useState(true);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const postsPerPage = 6;
 
   // Helper to check if current user is admin
   const isAdmin = userRole === 'admin';
@@ -53,24 +55,30 @@ const Index = () => {
   const loadInitialData = async () => {
     try {
       setLoading(true);
+      console.log('🚀 Loading initial data...');
       
       // Load posts and categories in parallel
       const [postsData, categoriesData] = await Promise.all([
-        fetchBlogPosts().catch(() => fallbackPosts), // Fallback to static data on error
+        fetchBlogPosts().catch((error) => {
+          console.error('❌ Error fetching posts:', error);
+          return [];
+        }), // Return empty array on error
         fetchCategories().catch(() => fallbackCategories)
       ]);
 
+      console.log('📝 Posts loaded:', postsData.length, 'posts');
+      console.log('📋 First post:', postsData[0]?.title);
       setBlogPosts(postsData);
       setCategories(categoriesData);
     } catch (error) {
       console.error('Error loading initial data:', error);
-      // Use fallback data
-      setBlogPosts(fallbackPosts);
+      // Use empty posts array and fallback categories
+      setBlogPosts([]);
       setCategories(fallbackCategories);
       toast({
-        title: "Notice",
-        description: "Using offline content. Some features may be limited.",
-        variant: "default"
+        title: "Error loading posts",
+        description: "Please check your connection and try again.",
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
@@ -91,6 +99,7 @@ const Index = () => {
     
     try {
       setSearchLoading(true);
+      setCurrentPage(1); // Reset to first page when searching
       const results = await searchBlogPosts(searchTerm.trim());
       setBlogPosts(results);
     } catch (error) {
@@ -108,6 +117,7 @@ const Index = () => {
   const handleCategoryChange = async (category: string) => {
     console.log(`🏷️ Category changed to: "${category}"`);
     setSelectedCategory(category);
+    setCurrentPage(1); // Reset to first page when changing category
     
     if (searchTerm.trim()) {
       // If there's a search term, don't change posts yet
@@ -147,7 +157,36 @@ const Index = () => {
     return matchesSearch && matchesCategory;
   });
 
-  const featuredPost = filteredPosts[0];
+  // Get featured post (latest published post or first in filtered results)
+  const featuredPost = useMemo(() => {
+    console.log('🎯 Selecting featured post');
+    console.log('🎯 filteredPosts:', filteredPosts?.length || 0);
+    console.log('🎯 blogPosts:', blogPosts?.length || 0);
+    
+    if (filteredPosts && filteredPosts.length > 0) {
+      // If we have filtered posts, use the first one
+      const selected = filteredPosts[0];
+      console.log('🎯 Selected from filtered posts:', {
+        id: selected.id,
+        title: selected.title,
+        slug: selected.slug,
+        hasSlug: !!selected.slug
+      });
+      return selected;
+    } else if (blogPosts && blogPosts.length > 0) {
+      // If no filtered posts but we have posts, use the latest one
+      const selected = blogPosts[0];
+      console.log('🎯 Selected from all posts:', {
+        id: selected.id,
+        title: selected.title,
+        slug: selected.slug,
+        hasSlug: !!selected.slug
+      });
+      return selected;
+    }
+    console.log('🎯 No posts available for featured post');
+    return null;
+  }, [filteredPosts, blogPosts]);
   const displayPosts = filteredPosts;
 
   return (
@@ -299,7 +338,18 @@ const Index = () => {
                     {featuredPost.category}
                   </Badge>
                   <h4 className="text-2xl font-bold text-gray-900 mb-4 hover:text-blue-600 transition-colors">
-                    <Link to={`/post/${featuredPost.id}`}>{featuredPost.title}</Link>
+                    <Link 
+                      to={featuredPost.slug ? `/${featuredPost.slug}` : `/post/${featuredPost.id}`}
+                      onClick={() => {
+                        console.log('🔗 Link clicked for featured post:');
+                        console.log('  - Title:', featuredPost.title);
+                        console.log('  - Slug:', featuredPost.slug);
+                        console.log('  - ID:', featuredPost.id);
+                        console.log('  - Target URL:', featuredPost.slug ? `/${featuredPost.slug}` : `/post/${featuredPost.id}`);
+                      }}
+                    >
+                      {featuredPost.title}
+                    </Link>
                   </h4>
                   <p className="text-gray-600 mb-6 line-clamp-3">{featuredPost.excerpt}</p>
                   <div className="flex items-center justify-between">
@@ -314,7 +364,16 @@ const Index = () => {
                         <p className="text-xs text-gray-500">{featuredPost.date}</p>
                       </div>
                     </div>
-                    <Link to={`/post/${featuredPost.id}`}>
+                    <Link 
+                      to={featuredPost.slug ? `/${featuredPost.slug}` : `/post/${featuredPost.id}`}
+                      onClick={() => {
+                        console.log('🔗 Read More clicked for featured post:');
+                        console.log('  - Title:', featuredPost.title);
+                        console.log('  - Slug:', featuredPost.slug);
+                        console.log('  - ID:', featuredPost.id);
+                        console.log('  - Target URL:', featuredPost.slug ? `/${featuredPost.slug}` : `/post/${featuredPost.id}`);
+                      }}
+                    >
                       <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700">
                         Read More <ChevronRight className="w-4 h-4 ml-1" />
                       </Button>
@@ -325,9 +384,36 @@ const Index = () => {
             </Card>
           ) : (
             <Card className="overflow-hidden shadow-lg">
-              <CardContent className="p-8 text-center">
-                <h4 className="text-xl font-semibold text-gray-600 mb-2">No Featured Post Available</h4>
-                <p className="text-gray-500">Check back soon for new content!</p>
+              <CardContent className="p-12 text-center">
+                <div className="space-y-4">
+                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
+                    <PenTool className="w-8 h-8 text-blue-600" />
+                  </div>
+                  <h4 className="text-2xl font-semibold text-gray-900">Start Your Blog Journey</h4>
+                  <p className="text-gray-600 max-w-md mx-auto">
+                    No posts yet? Create your first blog post and watch your content come to life!
+                  </p>
+                  {(user && (userRole === 'admin' || userRole === 'editor' || isNanopro)) && (
+                    <div className="pt-4">
+                      <Link to="/write">
+                        <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                          <PenTool className="w-4 h-4 mr-2" />
+                          Write Your First Post
+                        </Button>
+                      </Link>
+                    </div>
+                  )}
+                  {!user && (
+                    <div className="pt-4">
+                      <Link to="/auth">
+                        <Button variant="outline" className="border-blue-600 text-blue-600 hover:bg-blue-50">
+                          <LogIn className="w-4 h-4 mr-2" />
+                          Sign In to Write
+                        </Button>
+                      </Link>
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
           )}
@@ -373,11 +459,40 @@ const Index = () => {
               ))}
             </div>
           ) : displayPosts.length > 0 ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {displayPosts.slice(featuredPost ? 1 : 0).map((post) => (
-                <BlogPost key={post.id} post={post} />
-              ))}
-            </div>
+            <>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {displayPosts
+                  .slice((currentPage - 1) * postsPerPage, currentPage * postsPerPage)
+                  .map((post) => (
+                    <BlogPost key={post.id} post={post} />
+                  ))}
+              </div>
+              
+              {/* Pagination Controls */}
+              <div className="flex justify-between items-center mt-8">
+                <Button 
+                  variant="outline"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="flex items-center gap-2"
+                >
+                  <ChevronRight className="w-4 h-4 rotate-180" />
+                  Previous
+                </Button>
+                <span className="text-sm text-gray-600">
+                  Page {currentPage} of {Math.ceil(displayPosts.length / postsPerPage)}
+                </span>
+                <Button 
+                  variant="outline"
+                  onClick={() => setCurrentPage(prev => Math.min(Math.ceil(displayPosts.length / postsPerPage), prev + 1))}
+                  disabled={currentPage >= Math.ceil(displayPosts.length / postsPerPage)}
+                  className="flex items-center gap-2"
+                >
+                  Next
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </>
           ) : (
             <div className="text-center py-12">
               <div className="text-gray-500 mb-4">

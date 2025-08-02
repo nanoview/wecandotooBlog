@@ -18,13 +18,14 @@ const transformDatabasePost = (dbPost: any): BlogPost => {
   
   return {
     id: generateNumericId(dbPost.id) || Math.floor(Math.random() * 1000000),
+    slug: dbPost.slug || '', // Add slug field
     title: dbPost.title || '',
     excerpt: dbPost.excerpt || '',
-    content: dbPost.content || '',
+    content: dbPost.content || '', // HTML content from rich text editor
     image: dbPost.featured_image || 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
     author: {
       name: dbPost.profiles?.display_name || dbPost.profiles?.username || 'Anonymous',
-      avatar: dbPost.profiles?.avatar_url || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80',
+      avatar: dbPost.profiles?.avatar_url || '/placeholder.svg',
       bio: dbPost.profiles?.bio || 'Content creator and writer'
     },
     date: new Date(dbPost.published_at || dbPost.created_at).toLocaleDateString('en-US', {
@@ -48,6 +49,17 @@ const calculateReadTime = (content: string): string => {
   return `${minutes} min read`;
 };
 
+// Generate URL-friendly slug from title
+export const generateSlug = (title: string): string => {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+    .trim() // Remove leading/trailing whitespace
+    .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
+};
+
 // Fetch published blog posts with author information
 export const fetchBlogPosts = async (limit?: number): Promise<BlogPost[]> => {
   try {
@@ -57,6 +69,7 @@ export const fetchBlogPosts = async (limit?: number): Promise<BlogPost[]> => {
       .from('blog_posts')
       .select(`
         id,
+        slug,
         title,
         excerpt,
         content,
@@ -65,7 +78,8 @@ export const fetchBlogPosts = async (limit?: number): Promise<BlogPost[]> => {
         tags,
         published_at,
         created_at,
-        author_id
+        author_id,
+        status
       `)
       .eq('status', 'published')
       .order('published_at', { ascending: false });
@@ -81,11 +95,14 @@ export const fetchBlogPosts = async (limit?: number): Promise<BlogPost[]> => {
       throw error;
     }
 
-    console.log('✅ Fetched blog posts:', data?.length || 0, 'posts');
+    console.log('✅ Raw database response:', data);
+    console.log('📊 Number of posts found:', data?.length || 0);
     
     // If we have posts, fetch author profiles separately
     if (data && data.length > 0) {
       const authorIds = [...new Set(data.map(post => post.author_id))];
+      console.log('👥 Fetching profiles for author IDs:', authorIds);
+      
       const { data: profiles, error: profileError } = await supabase
         .from('profiles')
         .select('user_id, username, display_name, avatar_url, bio')
@@ -95,13 +112,28 @@ export const fetchBlogPosts = async (limit?: number): Promise<BlogPost[]> => {
         console.warn('⚠️ Error fetching profiles:', profileError);
       }
 
+      console.log('👤 Profiles found:', profiles?.length || 0);
+
       // Combine posts with author profiles
       const postsWithAuthors = data.map(post => ({
         ...post,
         profiles: profiles?.find(profile => profile.user_id === post.author_id) || null
       }));
 
-      return postsWithAuthors.map(transformDatabasePost);
+      console.log('🔗 Posts with authors combined:', postsWithAuthors.length);
+      console.log('📝 Sample post:', postsWithAuthors[0]);
+
+      const transformedPosts = postsWithAuthors.map(post => {
+        try {
+          return transformDatabasePost(post);
+        } catch (error) {
+          console.error('❌ Error transforming post:', post.title, error);
+          return null;
+        }
+      }).filter(Boolean);
+
+      console.log('✨ Transformed posts:', transformedPosts.length);
+      return transformedPosts;
     }
 
     return [];
@@ -111,13 +143,15 @@ export const fetchBlogPosts = async (limit?: number): Promise<BlogPost[]> => {
   }
 };
 
-// Fetch a single blog post by ID with original database ID (supports both UUID and numeric IDs)
+// Fetch a single blog post by ID with original database ID (supports UUID, numeric IDs, and slugs)
 export const fetchBlogPostWithDbId = async (id: string): Promise<{ post: BlogPost; dbId: string } | null> => {
   try {
     console.log('🔍 Fetching blog post with ID:', id);
     
     // Check if ID looks like a UUID (contains hyphens and is 36 chars)
     const isUUID = id.includes('-') && id.length === 36;
+    // Check if ID is purely numeric
+    const isNumeric = /^\d+$/.test(id);
     
     if (isUUID) {
       // Fetch by UUID (database ID)
@@ -126,6 +160,7 @@ export const fetchBlogPostWithDbId = async (id: string): Promise<{ post: BlogPos
         .select(`
           id,
           title,
+          slug,
           excerpt,
           content,
           featured_image,
@@ -142,11 +177,44 @@ export const fetchBlogPostWithDbId = async (id: string): Promise<{ post: BlogPos
           )
         `)
         .eq('id', id)
-        .eq('status', 'published')
         .single();
 
       if (error) {
         console.error('❌ Error fetching blog post by UUID:', error);
+        return null;
+      }
+
+      return data ? { post: transformDatabasePost(data), dbId: data.id } : null;
+    } else if (!isNumeric) {
+      // Treat as slug
+      console.log('🔤 Searching by slug:', id);
+      
+      const { data, error } = await supabase
+        .from('blog_posts')
+        .select(`
+          id,
+          title,
+          slug,
+          excerpt,
+          content,
+          featured_image,
+          category,
+          tags,
+          published_at,
+          created_at,
+          author_id,
+          profiles:author_id (
+            username,
+            display_name,
+            avatar_url,
+            bio
+          )
+        `)
+        .eq('slug', id)
+        .single();
+
+      if (error) {
+        console.error('❌ Error fetching blog post by slug:', error);
         return null;
       }
 
@@ -160,6 +228,7 @@ export const fetchBlogPostWithDbId = async (id: string): Promise<{ post: BlogPos
         .select(`
           id,
           title,
+          slug,
           excerpt,
           content,
           featured_image,
@@ -168,8 +237,7 @@ export const fetchBlogPostWithDbId = async (id: string): Promise<{ post: BlogPos
           published_at,
           created_at,
           author_id
-        `)
-        .eq('status', 'published');
+        `);
 
       if (error) {
         console.error('❌ Error fetching all posts for numeric search:', error);
@@ -202,6 +270,69 @@ export const fetchBlogPostWithDbId = async (id: string): Promise<{ post: BlogPos
     }
   } catch (error) {
     console.error('❌ Blog service error:', error);
+    return null;
+  }
+};
+
+// Fetch a single blog post by slug (SEO-friendly URLs)
+export const fetchBlogPostBySlug = async (slug: string): Promise<BlogPost | null> => {
+  try {
+    console.log('🔍 fetchBlogPostBySlug called with slug:', slug);
+    console.log('🔍 Supabase client available:', !!supabase);
+    
+    // First get the blog post
+    const { data: post, error: postError } = await supabase
+      .from('blog_posts')
+      .select(`
+        id,
+        slug,
+        title,
+        excerpt,
+        content,
+        featured_image,
+        category,
+        tags,
+        published_at,
+        created_at,
+        author_id,
+        status
+      `)
+      .eq('slug', slug)
+      .eq('status', 'published')
+      .single();
+
+    if (postError) {
+      console.error('❌ Error fetching blog post by slug:', postError);
+      return null;
+    }
+
+    // Then get the author profile
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('username, display_name, avatar_url, bio')
+      .eq('user_id', post.author_id)
+      .single();
+
+    if (profileError) {
+      console.warn('⚠️ Error fetching author profile:', profileError);
+    }
+
+    const data = {
+      ...post,
+      profiles: profile
+    };
+    
+    console.log('🔍 Supabase query result:', { data });
+
+    if (!data) {
+      console.log('📭 No blog post found with slug:', slug);
+      return null;
+    }
+
+    console.log('✅ Blog post found:', data.title);
+    return transformDatabasePost(data);
+  } catch (error) {
+    console.error('💥 Error in fetchBlogPostBySlug:', error);
     return null;
   }
 };
@@ -340,6 +471,59 @@ export const searchBlogPosts = async (searchTerm: string): Promise<BlogPost[]> =
 };
 
 // Create a new blog post
+export const convertContentToBlocks = (content: string) => {
+  // Split content by double newlines to separate paragraphs
+  const paragraphs = content.split(/\n\n+/);
+  
+  return paragraphs.map(paragraph => {
+    // Check if it's a heading (starts with # or ##)
+    if (paragraph.trim().startsWith('# ')) {
+      return {
+        type: 'heading',
+        content: {
+          text: paragraph.trim().replace(/^# /, ''),
+          level: 1
+        }
+      };
+    } else if (paragraph.trim().startsWith('## ')) {
+      return {
+        type: 'heading',
+        content: {
+          text: paragraph.trim().replace(/^## /, ''),
+          level: 2
+        }
+      };
+    }
+    // Check if it's a quote (starts with >)
+    else if (paragraph.trim().startsWith('>')) {
+      return {
+        type: 'quote',
+        content: {
+          text: paragraph.trim().replace(/^> /, '')
+        }
+      };
+    }
+    // Check if it's a list (starts with - or *)
+    else if (paragraph.trim().split('\n').every(line => line.trim().startsWith('- ') || line.trim().startsWith('* '))) {
+      return {
+        type: 'list',
+        content: paragraph.trim().split('\n').map(line => ({
+          text: line.trim().replace(/^[-*] /, '')
+        }))
+      };
+    }
+    // Regular paragraph
+    else {
+      return {
+        type: 'text',
+        content: {
+          text: paragraph.trim()
+        }
+      };
+    }
+  });
+};
+
 export const createBlogPost = async (postData: {
   title: string;
   content: string;
@@ -362,13 +546,24 @@ export const createBlogPost = async (postData: {
 
     const now = new Date().toISOString();
     
-    // Generate slug from title
-    const slug = postData.title
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .trim();
+    // Generate slug from title using the utility function
+    const baseSlug = generateSlug(postData.title);
+    let slug = baseSlug;
+    
+    // Check if slug already exists and make it unique
+    let counter = 1;
+    while (true) {
+      const { data: existingPost } = await supabase
+        .from('blog_posts')
+        .select('id')
+        .eq('slug', slug)
+        .single();
+      
+      if (!existingPost) break; // Slug is unique
+      
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
     
     const { data, error } = await supabase
       .from('blog_posts')
@@ -376,7 +571,7 @@ export const createBlogPost = async (postData: {
         title: postData.title,
         slug: slug,
         content: postData.content,
-        excerpt: postData.excerpt || postData.content.substring(0, 150) + '...',
+        excerpt: postData.excerpt || postData.content.substring(0, 150).trim() + '...',
         category: postData.category,
         tags: postData.tags,
         featured_image: postData.featuredImage,
@@ -437,12 +632,17 @@ export const updateBlogPost = async (
     };
 
     if (postData.title !== undefined) updateData.title = postData.title;
-    if (postData.content !== undefined) updateData.content = postData.content;
+    if (postData.content !== undefined) {
+      // Store the HTML content directly since we're using RichTextEditor
+      updateData.content = postData.content;
+      if (!postData.excerpt) {
+        updateData.excerpt = postData.content.substring(0, 150).replace(/[#>*\-]/g, '').trim() + '...';
+      }
+    }
     if (postData.excerpt !== undefined) updateData.excerpt = postData.excerpt;
     if (postData.category !== undefined) updateData.category = postData.category;
     if (postData.tags !== undefined) updateData.tags = postData.tags;
     if (postData.featured_image !== undefined) updateData.featured_image = postData.featured_image;
-    if (postData.read_time !== undefined) updateData.read_time = postData.read_time;
     if (postData.status !== undefined) updateData.status = postData.status;
 
     // If publishing for the first time, set published_at

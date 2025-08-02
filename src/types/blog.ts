@@ -7,6 +7,7 @@ export interface Author {
 
 export interface BlogPost {
   id: number;
+  slug: string; // SEO-friendly URL slug
   title: string;
   excerpt: string;
   content: string;

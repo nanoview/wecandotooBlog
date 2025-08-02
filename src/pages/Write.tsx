@@ -9,6 +9,7 @@ import { createBlogPost, updateBlogPost } from '@/services/blogService';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 
+
 interface PostData {
   title: string;
   content: string;

@@ -47,12 +47,11 @@ const Edit = () => {
 
       // Check if user has permission to edit this post
       const canEdit = user && (
-        // User is the author of the post
-        (postData.author_id && user.id === postData.author_id) ||
-        (postData.author_username && username === postData.author_username) ||
-        // User has editor role or is nanopro
-        userRole === 'editor' ||
-        username === 'nanopro'
+        // User is the author AND has editor role
+        ((postData.author_id === user.id || postData.author_username === username) && userRole === 'editor') ||
+        // Or user is nanopro or admin
+        username === 'nanopro' ||
+        userRole === 'admin'
       );
 
       if (!canEdit) {
@@ -151,8 +150,7 @@ const Edit = () => {
           content: post.content,
           category: post.category,
           tags: post.tags,
-          featured_image: post.image,
-          read_time: parseInt(post.readTime) || 5
+          featured_image: post.image
         }}
         mode="edit"
       />
