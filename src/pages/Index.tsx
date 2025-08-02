@@ -197,10 +197,10 @@ const Index = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">B</span>
+                <span className="text-white font-bold text-lg">W</span>
               </div>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                BlogSpace
+                wecandotoo
               </h1>
             </div>
             <nav className="hidden md:flex items-center space-x-8">
@@ -557,9 +557,9 @@ const Index = () => {
             <div>
               <div className="flex items-center space-x-2 mb-4">
                 <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">B</span>
+                  <span className="text-white font-bold text-lg">W</span>
                 </div>
-                <h4 className="text-xl font-bold">BlogSpace</h4>
+                <h4 className="text-xl font-bold">wecandotoo</h4>
               </div>
               <p className="text-gray-400">
                 A platform for sharing knowledge and connecting with like-minded readers.
@@ -600,7 +600,7 @@ const Index = () => {
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 BlogSpace. All rights reserved.</p>
+            <p>&copy; 2024 wecandotoo. All rights reserved.</p>
           </div>
         </div>
       </footer>

@@ -97,8 +97,8 @@ const Contact = () => {
                       <p className="text-gray-600 mb-2">
                         For general inquiries and support
                       </p>
-                      <a href="mailto:hello@blogspace.com" className="text-blue-600 hover:underline">
-                        hello@blogspace.com
+                      <a href="mailto:hello@wecandotoo.com" className="text-blue-600 hover:underline">
+                        hello@wecandotoo.com
                       </a>
                     </div>
                   </div>
@@ -150,7 +150,7 @@ const Contact = () => {
                       </p>
                     </div>
                     <div>
-                      <h4 className="font-medium text-gray-900 mb-1">Can I guest post on BlogSpace?</h4>
+                      <h4 className="font-medium text-gray-900 mb-1">Can I guest post on wecandotoo?</h4>
                       <p className="text-sm text-gray-600">
                         Yes! We welcome guest contributors. Email us with your idea and writing samples.
                       </p>
@@ -158,7 +158,7 @@ const Contact = () => {
                     <div>
                       <h4 className="font-medium text-gray-900 mb-1">How do I report an issue?</h4>
                       <p className="text-sm text-gray-600">
-                        Use the contact form above or email us directly at support@blogspace.com
+                        Use the contact form above or email us directly at support@wecandotoo.com
                       </p>
                     </div>
                   </div>

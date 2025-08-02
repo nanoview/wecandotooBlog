@@ -22,7 +22,7 @@ const About = () => {
       {/* Hero Section */}
       <section className="py-16 px-4">
         <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-5xl font-bold text-gray-900 mb-6">About BlogSpace</h1>
+          <h1 className="text-5xl font-bold text-gray-900 mb-6">About wecandotoo</h1>
           <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
             We're building a community where knowledge flows freely and every voice matters.
           </p>
@@ -92,7 +92,7 @@ const About = () => {
           <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">Our Story</h2>
           <div className="prose prose-lg max-w-none">
             <p className="text-gray-700 leading-relaxed mb-6">
-              BlogSpace was born out of a simple observation: great ideas deserve great platforms. 
+              wecandotoo was born out of a simple observation: great ideas deserve great platforms. 
               We noticed that many talented writers and thinkers were struggling to find the right 
               audience for their content, while readers were looking for quality, in-depth articles 
               on topics they cared about.
@@ -105,7 +105,7 @@ const About = () => {
             </p>
             
             <p className="text-gray-700 leading-relaxed">
-              Today, BlogSpace is home to thousands of articles covering everything from technology 
+              Today, wecandotoo is home to thousands of articles covering everything from technology 
               and business to personal development and creative arts. Our community continues to grow, 
               driven by our shared passion for learning and sharing knowledge.
             </p>
@@ -119,7 +119,7 @@ const About = () => {
           <h2 className="text-3xl font-bold text-white mb-6">Join Our Community</h2>
           <p className="text-blue-100 mb-8 text-lg">
             Ready to share your story or discover amazing content? 
-            Join thousands of writers and readers who call BlogSpace home.
+            Join thousands of writers and readers who call wecandotoo home.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button className="bg-white text-blue-600 hover:bg-gray-100 font-semibold">
