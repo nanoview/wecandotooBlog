@@ -18,6 +18,7 @@ import BlogEditor from "./pages/BlogEditor";
 import Write from "./pages/Write";
 import Edit from "./pages/Edit";
 import OAuthCallback from "./pages/OAuthCallback";
+import { EditorPanel } from "./pages/EditorPanel";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -47,6 +48,7 @@ const App = () => (
             <Route path="/oauth/callback" element={<OAuthCallback />} />
             <Route path="/editor" element={<BlogEditor />} />
             <Route path="/write" element={<Write />} />
+            <Route path="/editor-panel" element={<EditorPanel />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

@@ -1,113 +1,107 @@
-import { useEffect, useState } from 'react';
-import { googleConfig } from '@/config/google';
-
-declare global {
-  interface Window {
-    adsbygoogle: any[];
-  }
-}
-
-interface AdSize {
-  width: number | 'auto';
-  height: number | 'auto';
-}
+import { useEffect, useState, useRef } from 'react';
 
 interface GoogleAdProps {
-  slot: string;
+  slot?: string;
   layout?: 'banner' | 'rectangle' | 'responsive';
-  style?: React.CSSProperties;
   className?: string;
 }
 
-function GoogleAd({ slot, layout = 'responsive', style = {}, className = '' }: GoogleAdProps) {
-  const adConfig = {
-    isEnabled: !!googleConfig.adsenseClientId,
-    clientId: googleConfig.adsenseClientId || 'ca-pub-2959602333047653'
-  };
-
-  const getAdSize = () => {
-    switch (layout) {
-      case 'banner':
-        return { width: 610, height: 280 };
-      case 'rectangle':
-        return { width: 300, height: 250 };
-      case 'responsive':
-      default:
-        return { width: 'auto', height: 'auto' };
-    }
-  };
-
-  useEffect(() => {
-    if (adConfig.isEnabled) {
-      try {
-        (window.adsbygoogle = window.adsbygoogle || []).push({});
-      } catch (error) {
-        console.error('AdSense error:', error);
-      }
-    }
-  }, [adConfig.isEnabled]);
-
+const GoogleAd = ({ slot = 'default', layout = 'responsive', className = '' }: GoogleAdProps) => {
+  const adRef = useRef<HTMLDivElement>(null);
   const [adFailed, setAdFailed] = useState(false);
+  const [adLoaded, setAdLoaded] = useState(false);
 
-  // Function to handle ad load errors
+  // Use a ref to track initialization
+  const initializedRef = useRef(false);
+
   useEffect(() => {
-    const handleAdError = () => setAdFailed(true);
-    window.addEventListener('error', handleAdError);
-    return () => window.removeEventListener('error', handleAdError);
-  }, []);
+    // Prevent multiple initialization attempts
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+    
+    const loadAd = () => {
+      try {
+        if (adRef.current && window.adsbygoogle) {
+          // Clear any existing content
+          adRef.current.innerHTML = '';
+          
+          // Create new ins element
+          const adElement = document.createElement('ins');
+          adElement.className = 'adsbygoogle';
+          adElement.style.display = 'block';
+          adElement.setAttribute('data-ad-client', 'ca-pub-2959602333047653');
+          adElement.setAttribute('data-ad-slot', slot);
+          
+          if (layout === 'banner') {
+            adElement.style.width = '728px';
+            adElement.style.height = '90px';
+          } else if (layout === 'rectangle') {
+            adElement.style.width = '300px';
+            adElement.style.height = '250px';
+          } else {
+            adElement.setAttribute('data-ad-format', 'auto');
+            adElement.setAttribute('data-full-width-responsive', 'true');
+          }
+          
+          // Append the ad element to our ref
+          adRef.current.appendChild(adElement);
+          
+          // Push the ad to adsbygoogle for display
+          (window.adsbygoogle = window.adsbygoogle || []).push({});
+          
+          // Mark as loaded after a delay
+          setTimeout(() => setAdLoaded(true), 1000);
+        }
+      } catch (error) {
+        console.error('Error loading Google Ad:', error);
+        setAdFailed(true);
+      }
+    };
 
-  if (!adConfig.isEnabled || adFailed) {
-    const size = getAdSize();
-    const mockContent = layout === 'banner' ? (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <div className="text-blue-600 font-semibold mb-2">Featured Sponsor</div>
-          <div className="text-gray-800 text-lg font-medium mb-1">Your Brand Here</div>
-          <div className="text-gray-600 text-sm">Reach our engaged audience</div>
-        </div>
-      </div>
-    ) : (
-      <div className="flex flex-col items-center justify-center h-full">
-        <p className="text-sm text-gray-600 mb-1">Advertisement</p>
-        <p className="text-xs text-gray-500">{layout} format</p>
-      </div>
-    );
+    // Check if adsbygoogle is loaded
+    if (window.adsbygoogle) {
+      loadAd();
+    } else {
+      // Set a timeout to check again
+      const timer = setTimeout(() => {
+        if (window.adsbygoogle) {
+          loadAd();
+        } else {
+          setAdFailed(true);
+        }
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [slot, layout]);
 
+  // Render placeholder when ads fail to load
+  if (adFailed) {
     return (
-      <div 
-        className={`border border-gray-200 bg-gray-50 rounded-lg p-4 text-center ${className}`}
-        style={{
-          width: size.width,
-          height: size.height,
-          ...style
-        }}
-      >
-        {mockContent}
+      <div className={`ad-placeholder ${className}`}>
+        {layout === 'banner' ? (
+          <div className="h-24 bg-gray-100 rounded flex items-center justify-center border border-gray-200 px-4">
+            <span className="text-gray-400 text-sm">Advertisement</span>
+          </div>
+        ) : layout === 'rectangle' ? (
+          <div className="h-64 w-full max-w-xs bg-gray-100 rounded flex items-center justify-center border border-gray-200">
+            <span className="text-gray-400 text-sm">Advertisement</span>
+          </div>
+        ) : (
+          <div className="h-32 bg-gray-100 rounded flex items-center justify-center border border-gray-200">
+            <span className="text-gray-400 text-sm">Advertisement</span>
+          </div>
+        )}
       </div>
     );
   }
 
-  const size = getAdSize();
-  const adStyle = {
-    display: 'block',
-    textAlign: 'center' as const,
-    ...style,
-    ...(layout !== 'responsive' ? size : {})
-  };
-
   return (
-    <div className={className} style={adStyle}>
-      <ins
-        className="adsbygoogle"
-        style={{ display: 'block' }}
-        data-ad-client={adConfig.clientId}
-        data-ad-slot={slot}
-        data-ad-layout={layout === 'responsive' ? 'in-article' : undefined}
-        data-ad-format={layout === 'responsive' ? 'fluid' : 'auto'}
-        data-full-width-responsive={layout === 'responsive' ? 'true' : 'false'}
-      />
-    </div>
+    <div 
+      ref={adRef} 
+      className={`google-ad ${adLoaded ? 'ad-loaded' : 'ad-loading'} ${className}`}
+    />
   );
-}
+};
 
 export default GoogleAd;

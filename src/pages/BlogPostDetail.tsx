@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Calendar, User, Clock, ArrowLeft, Share2, Heart, Bookmark, Loader2, Edit } from 'lucide-react';
@@ -9,6 +8,7 @@ import BlogPost from '@/components/BlogPost';
 import { Comments } from '@/components/Comments';
 import BlockEditor, { Block } from '@/components/BlockEditor';
 import GoogleAd from '@/components/GoogleAd';
+import BackToTopButton from '@/components/BackToTopButton';
 import { fetchBlogPost, fetchBlogPostBySlug, fetchBlogPostsByCategory } from '@/services/blogService';
 import { BlogPost as BlogPostType } from '@/types/blog';
 import { useToast } from '@/hooks/use-toast';
@@ -482,6 +482,8 @@ const BlogPostDetail = () => {
           </div>
         </div>
       </section>
+
+      <BackToTopButton />
     </div>
   );
 };

@@ -1,7 +1,6 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Calendar, User, Tag, ChevronRight, Star, LogIn, Settings, LogOut, Loader2, PenTool } from 'lucide-react';
+import { Search, Calendar, User, Tag, ChevronRight, Star, LogIn, Settings, LogOut, Loader2, PenTool, Edit, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +13,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { fetchBlogPosts, fetchCategories, searchBlogPosts, fetchBlogPostsByCategory } from '@/services/blogService';
 import { BlogPost as BlogPostType } from '@/types/blog';
 import { useToast } from '@/hooks/use-toast';
+import BackToTopButton from '@/components/BackToTopButton';
+
 
 const Index = () => {
   const { user, userRole, username, signOut, isNanopro } = useAuth();
@@ -31,6 +32,7 @@ const Index = () => {
   const isAdmin = userRole === 'admin';
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Load initial data
   useEffect(() => {
@@ -203,6 +205,8 @@ const Index = () => {
                 wecandotoo
               </h1>
             </div>
+            
+            {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center space-x-8">
               <Link to="/" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
                 Home
@@ -213,22 +217,14 @@ const Index = () => {
               <Link to="/contact" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
                 Contact
               </Link>
-              {user && (
-                <Link 
-                  to="/write" 
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors flex items-center gap-2"
-                >
-                  <PenTool className="w-4 h-4" />
-                  Write
+              {!user ? (
+                <Link to="/auth">
+                  <Button>
+                    <LogIn className="w-4 h-4 mr-2" />
+                    Sign In
+                  </Button>
                 </Link>
-              )}
-              {userRole === 'editor' && (
-                <Link to="/editor" className="bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 px-4 py-2 rounded-md font-medium transition-colors flex items-center gap-2">
-                  <Settings className="w-4 h-4" />
-                  Editor
-                </Link>
-              )}
-              {user ? (
+              ) : (
                 <div className="flex items-center space-x-4">
                   {/* Mini profile dropdown */}
                   <div className="relative group">
@@ -252,8 +248,18 @@ const Index = () => {
                         </div>
                       </div>
                       {isAdmin && (
-                        <Link to="/admin" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Admin</Link>
+                        <Link to="/admin" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                          <Settings className="inline w-4 h-4 mr-2 align-text-bottom" />Admin
+                        </Link>
                       )}
+                      {(userRole === 'editor' || userRole === 'admin') && (
+                        <Link to="/editor-panel" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                          <PenTool className="inline w-4 h-4 mr-2 align-text-bottom" />Editor Dashboard
+                        </Link>
+                      )}
+                      <Link to="/write" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        <Edit className="inline w-4 h-4 mr-2 align-text-bottom" />Write
+                      </Link>
                       <button
                         onClick={signOut}
                         className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 border-t border-gray-100"
@@ -263,16 +269,108 @@ const Index = () => {
                     </div>
                   </div>
                 </div>
-              ) : (
-                <Link to="/auth">
-                  <Button>
-                    <LogIn className="w-4 h-4 mr-2" />
-                    Sign In
-                  </Button>
-                </Link>
               )}
             </nav>
+            
+            {/* Mobile Three-Dot Menu Button */}
+            <div className="md:hidden">
+              <button 
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)} 
+                className="p-2 rounded-full hover:bg-gray-100"
+              >
+                <MoreVertical className="w-6 h-6 text-gray-700" />
+              </button>
+            </div>
           </div>
+          
+          {/* Mobile Menu Dropdown */}
+          {mobileMenuOpen && (
+            <div className="md:hidden pt-4 pb-2 border-t mt-4 transition-all">
+              <nav className="flex flex-col space-y-3">
+                <Link 
+                  to="/" 
+                  className="px-2 py-1 text-gray-700 hover:text-blue-600 font-medium transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Home
+                </Link>
+                <Link 
+                  to="/about" 
+                  className="px-2 py-1 text-gray-700 hover:text-blue-600 font-medium transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  About
+                </Link>
+                <Link 
+                  to="/contact" 
+                  className="px-2 py-1 text-gray-700 hover:text-blue-600 font-medium transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Contact
+                </Link>
+                {!user ? (
+                  <Link 
+                    to="/auth" 
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center"
+                  >
+                    <Button size="sm" className="w-full justify-start">
+                      <LogIn className="w-4 h-4 mr-2" />
+                      Sign In
+                    </Button>
+                  </Link>
+                ) : (
+                  <div className="border-t pt-2">
+                    <div className="px-2 py-1 flex items-center space-x-2">
+                      <User className="w-5 h-5 text-gray-600" />
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">{username || user.email?.split('@')[0]}</div>
+                        <div className="text-xs text-gray-500">{userRole || 'user'}</div>
+                      </div>
+                    </div>
+                    {isAdmin && (
+                      <Link 
+                        to="/admin" 
+                        className="flex items-center px-2 py-1 text-gray-700 hover:text-blue-600"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        <Settings className="w-4 h-4 mr-2" />
+                        Admin
+                      </Link>
+                    )}
+                    {(userRole === 'editor' || userRole === 'admin') && (
+                      <Link 
+                        to="/editor-panel" 
+                        className="flex items-center px-2 py-1 text-gray-700 hover:text-blue-600"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        <PenTool className="w-4 h-4 mr-2" />
+                        Editor Dashboard
+                      </Link>
+                    )}
+                    <Link 
+                      to="/write" 
+                      className="flex items-center px-2 py-1 text-gray-700 hover:text-blue-600"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <Edit className="w-4 h-4 mr-2" />
+                      Write
+                    </Link>
+                    <button
+                      onClick={() => {
+                        signOut();
+                        setMobileMenuOpen(false);
+                      }}
+                      className="w-full flex items-center px-2 py-1 text-red-600 hover:bg-gray-100 mt-1"
+                    >
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Sign Out
+                    </button>
+                  </div>
+                )}
+              </nav>
+            </div>
+          )}
         </div>
       </header>
 
@@ -614,6 +712,8 @@ const Index = () => {
           <PenTool className="w-6 h-6" />
         </Link>
       )}
+
+      <BackToTopButton />
     </div>
   );
 };
