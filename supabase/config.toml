@@ -33,6 +33,9 @@ verify_jwt = true
 [functions.google-oauth]
 verify_jwt = false
 
+[functions.send-confirmation-email]
+verify_jwt = false
+
 [storage]
 enabled = true
 file_size_limit = "50MiB"
