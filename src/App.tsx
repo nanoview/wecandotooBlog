@@ -20,6 +20,7 @@ import Edit from "./pages/Edit";
 import OAuthCallback from "./pages/OAuthCallback";
 import { EditorPanel } from "./pages/EditorPanel";
 import NotFound from "./pages/NotFound";
+import ConfirmSubscription from "./pages/ConfirmSubscription";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +50,7 @@ const App = () => (
             <Route path="/editor" element={<BlogEditor />} />
             <Route path="/write" element={<Write />} />
             <Route path="/editor-panel" element={<EditorPanel />} />
+            <Route path="/confirm-subscription" element={<ConfirmSubscription />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

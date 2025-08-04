@@ -14,6 +14,8 @@ import { fetchBlogPosts, fetchCategories, searchBlogPosts, fetchBlogPostsByCateg
 import { BlogPost as BlogPostType } from '@/types/blog';
 import { useToast } from '@/hooks/use-toast';
 import BackToTopButton from '@/components/BackToTopButton';
+import Footer from '@/components/Footer';
+import NewsletterSubscription from '@/components/NewsletterSubscription';
 
 
 const Index = () => {
@@ -635,73 +637,10 @@ const Index = () => {
           <p className="text-blue-100 mb-8 text-lg">
             Get the latest articles delivered straight to your inbox
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-            <Input
-              type="email"
-              placeholder="Enter your email"
-              className="flex-1 bg-white/10 border-white/20 text-white placeholder:text-white/70"
-            />
-            <Button className="bg-white text-blue-600 hover:bg-gray-100 font-semibold">
-              Subscribe
-            </Button>
-          </div>
+          <NewsletterSubscription />
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12 px-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div>
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">W</span>
-                </div>
-                <h4 className="text-xl font-bold">wecandotoo</h4>
-              </div>
-              <p className="text-gray-400">
-                A platform for sharing knowledge and connecting with like-minded readers.
-              </p>
-            </div>
-            <div>
-              <h5 className="font-semibold mb-4">Categories</h5>
-              <ul className="space-y-2 text-gray-400">
-                {categories.slice(1, 6).map((category) => (
-                  <li key={category}>
-                    <button 
-                      onClick={() => handleCategoryChange(category)}
-                      className="hover:text-white transition-colors text-left"
-                    >
-                      {category}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h5 className="font-semibold mb-4">Company</h5>
-              <ul className="space-y-2 text-gray-400">
-                <li><Link to="/about" className="hover:text-white transition-colors">About</Link></li>
-                <li><Link to="/contact" className="hover:text-white transition-colors">Contact</Link></li>
-                <li><Link to="#" className="hover:text-white transition-colors">Privacy</Link></li>
-                <li><Link to="#" className="hover:text-white transition-colors">Terms</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h5 className="font-semibold mb-4">Connect</h5>
-              <ul className="space-y-2 text-gray-400">
-                <li><Link to="#" className="hover:text-white transition-colors">Twitter</Link></li>
-                <li><Link to="#" className="hover:text-white transition-colors">LinkedIn</Link></li>
-                <li><Link to="#" className="hover:text-white transition-colors">GitHub</Link></li>
-                <li><Link to="#" className="hover:text-white transition-colors">RSS</Link></li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 wecandotoo. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
 
       {/* Floating Action Button for Write (Mobile) */}
       {user && (
@@ -714,6 +653,7 @@ const Index = () => {
       )}
 
       <BackToTopButton />
+      <Footer />
     </div>
   );
 };
