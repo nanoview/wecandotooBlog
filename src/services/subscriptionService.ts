@@ -28,7 +28,49 @@ export const subscribeToNewsletter = async (email: string) => {
     
     console.log('Database connection successful, subscriber count:', testData);
     
-    // Insert without confirmation_token - let the trigger generate it
+    // Check if email already exists
+    const { data: existingSubscriber, error: checkError } = await supabase
+      .from('subscribers')
+      .select('*')
+      .eq('email', email.toLowerCase().trim())
+      .maybeSingle();
+    
+    if (checkError) {
+      console.error('Error checking existing subscriber:', checkError);
+      throw new Error(`Database error: ${checkError.message}`);
+    }
+    
+    // Handle existing subscriber cases
+    if (existingSubscriber) {
+      if (existingSubscriber.status === 'confirmed') {
+        throw new Error('ALREADY_CONFIRMED');
+      } else if (existingSubscriber.status === 'pending') {
+        // Resend confirmation email for pending subscription
+        await sendConfirmationEmail(existingSubscriber.email, existingSubscriber.confirmation_token);
+        return { ...existingSubscriber, resent: true };
+      } else if (existingSubscriber.status === 'unsubscribed') {
+        // Reactivate unsubscribed user
+        const { data: reactivatedData, error: reactivateError } = await supabase
+          .from('subscribers')
+          .update({
+            status: 'pending',
+            unsubscribed_at: null,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingSubscriber.id)
+          .select()
+          .single();
+        
+        if (reactivateError) {
+          throw new Error(`Failed to reactivate subscription: ${reactivateError.message}`);
+        }
+        
+        await sendConfirmationEmail(reactivatedData.email, reactivatedData.confirmation_token);
+        return { ...reactivatedData, reactivated: true };
+      }
+    }
+    
+    // Insert new subscriber
     const { data, error } = await supabase
       .from('subscribers')
       .insert({
@@ -43,9 +85,6 @@ export const subscribeToNewsletter = async (email: string) => {
       
       if (error.code === '42501') {
         throw new Error('Permission denied. Database policy is blocking the insert.');
-      }
-      if (error.code === '23505') {
-        throw new Error('This email is already subscribed');
       }
       if (error.message.includes('relation "subscribers" does not exist')) {
         throw new Error('Database table not found. Please run the migration first.');
@@ -138,28 +177,51 @@ export const getConfirmedSubscribers = async () => {
   }
 };
 
-// Send confirmation email (placeholder - you'll need to implement with your email service)
+// Send confirmation email using Supabase Edge Function
 const sendConfirmationEmail = async (email: string, token: string) => {
-  // This is a placeholder. You'll need to implement this with your email service
-  // (SendGrid, Mailgun, AWS SES, etc.)
-  
-  const confirmationUrl = `${window.location.origin}/confirm-subscription?token=${token}`;
-  
-  console.log(`Send confirmation email to ${email}`);
-  console.log(`Confirmation URL: ${confirmationUrl}`);
-  
-  // For now, we'll just log it. In production, you'd send an actual email
-  // Example with a hypothetical email service:
-  /*
-  await emailService.send({
-    to: email,
-    subject: 'Confirm your subscription to wecandotoo',
-    html: `
-      <h2>Welcome to wecandotoo!</h2>
-      <p>Thanks for subscribing to our newsletter. Please confirm your subscription by clicking the link below:</p>
-      <a href="${confirmationUrl}">Confirm Subscription</a>
-      <p>If you didn't subscribe, you can safely ignore this email.</p>
-    `
-  });
-  */
+  try {
+    const siteUrl = window.location.origin;
+    
+    const { data, error } = await supabase.functions.invoke('send-confirmation-email', {
+      body: {
+        email,
+        confirmationToken: token,
+        siteUrl
+      }
+    });
+    
+    if (error) {
+      console.error('Error sending confirmation email:', error);
+      // Don't throw error here as subscription was successful
+      // Just log the error and continue
+    } else {
+      console.log('Confirmation email sent successfully:', data);
+    }
+  } catch (error) {
+    console.error('Failed to send confirmation email:', error);
+    // Don't throw error here as subscription was successful
+  }
+};
+
+// Resend confirmation email
+export const resendConfirmationEmail = async (email: string) => {
+  try {
+    // Get the subscriber's confirmation token
+    const { data: subscriber, error } = await supabase
+      .from('subscribers')
+      .select('confirmation_token, status')
+      .eq('email', email.toLowerCase().trim())
+      .eq('status', 'pending')
+      .single();
+    
+    if (error || !subscriber) {
+      throw new Error('Subscriber not found or already confirmed');
+    }
+    
+    await sendConfirmationEmail(email, subscriber.confirmation_token);
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error resending confirmation email:', error);
+    throw error;
+  }
 };

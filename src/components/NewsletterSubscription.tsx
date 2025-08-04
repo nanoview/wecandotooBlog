@@ -2,13 +2,15 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { subscribeToNewsletter } from '@/services/subscriptionService';
-import { Loader2, Mail, CheckCircle } from 'lucide-react';
+import { subscribeToNewsletter, resendConfirmationEmail } from '@/services/subscriptionService';
+import { Loader2, Mail, CheckCircle, RefreshCw } from 'lucide-react';
 
 const NewsletterSubscription = () => {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
+  const [showResendOption, setShowResendOption] = useState(false);
+  const [resendEmail, setResendEmail] = useState('');
   const { toast } = useToast();
 
   const handleSubscribe = async (e: React.FormEvent) => {
@@ -46,15 +48,62 @@ const NewsletterSubscription = () => {
       setSubscribed(true);
       setEmail('');
       
-      toast({
-        title: "Success!",
-        description: "You've been subscribed to our newsletter!",
-      });
+      if (result.resent) {
+        toast({
+          title: "Confirmation email resent!",
+          description: "Please check your inbox and confirm your subscription.",
+        });
+      } else if (result.reactivated) {
+        toast({
+          title: "Subscription reactivated!",
+          description: "A new confirmation email has been sent to your inbox.",
+        });
+      } else {
+        toast({
+          title: "Success!",
+          description: "Please check your email to confirm your subscription!",
+        });
+      }
     } catch (error: any) {
       console.error('Subscription error:', error);
       
+      if (error.message === 'ALREADY_CONFIRMED') {
+        setShowResendOption(true);
+        setResendEmail(email);
+        toast({
+          title: "Already subscribed",
+          description: "This email is already confirmed. Need a new confirmation email?",
+          variant: "default"
+        });
+      } else {
+        toast({
+          title: "Subscription failed",
+          description: error.message || "Please try again later",
+          variant: "destructive"
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendConfirmation = async () => {
+    if (!resendEmail) return;
+    
+    try {
+      setLoading(true);
+      await resendConfirmationEmail(resendEmail);
+      
       toast({
-        title: "Subscription failed",
+        title: "Confirmation email sent!",
+        description: "Please check your inbox and confirm your subscription.",
+      });
+      
+      setShowResendOption(false);
+      setResendEmail('');
+    } catch (error: any) {
+      toast({
+        title: "Failed to resend",
         description: error.message || "Please try again later",
         variant: "destructive"
       });
@@ -62,6 +111,49 @@ const NewsletterSubscription = () => {
       setLoading(false);
     }
   };
+
+  // Show resend option if user tries to subscribe with already confirmed email
+  if (showResendOption) {
+    return (
+      <div className="flex flex-col gap-4 max-w-md mx-auto">
+        <div className="text-center">
+          <h4 className="text-lg font-semibold text-white mb-2">Email Already Subscribed</h4>
+          <p className="text-blue-100 text-sm mb-4">
+            This email is already confirmed. Would you like to receive a confirmation email anyway?
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button 
+            onClick={handleResendConfirmation}
+            disabled={loading}
+            className="bg-white text-blue-600 hover:bg-gray-100 font-semibold flex-1"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Sending...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Resend Email
+              </>
+            )}
+          </Button>
+          <Button 
+            variant="outline" 
+            className="border-white text-white hover:bg-white hover:text-blue-600"
+            onClick={() => {
+              setShowResendOption(false);
+              setResendEmail('');
+            }}
+          >
+            Cancel
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (subscribed) {
     return (
