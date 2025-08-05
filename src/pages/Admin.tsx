@@ -66,8 +66,19 @@ const Admin = () => {
       return;
     }
 
-    // Redirect if user is not authenticated or not admin
-    if (!user || userRole !== 'admin') {
+    // If user is not authenticated, redirect
+    if (!user) {
+      navigate('/');
+      return;
+    }
+
+    // If user is authenticated but role is still loading, wait
+    if (user && userRole === null) {
+      return;
+    }
+
+    // If user is authenticated but not admin, redirect
+    if (user && userRole !== 'admin') {
       navigate('/');
       return;
     }
