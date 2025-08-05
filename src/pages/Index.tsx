@@ -259,9 +259,11 @@ const Index = () => {
                           <PenTool className="inline w-4 h-4 mr-2 align-text-bottom" />Editor Dashboard
                         </Link>
                       )}
-                      <Link to="/write" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                        <Edit className="inline w-4 h-4 mr-2 align-text-bottom" />Write
-                      </Link>
+                      {(userRole === 'admin' || userRole === 'editor') && (
+                        <Link to="/write" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                          <Edit className="inline w-4 h-4 mr-2 align-text-bottom" />Write
+                        </Link>
+                      )}
                       <button
                         onClick={signOut}
                         className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 border-t border-gray-100"
@@ -350,14 +352,16 @@ const Index = () => {
                         Editor Dashboard
                       </Link>
                     )}
-                    <Link 
-                      to="/write" 
-                      className="flex items-center px-2 py-1 text-gray-700 hover:text-blue-600"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      <Edit className="w-4 h-4 mr-2" />
-                      Write
-                    </Link>
+                    {(userRole === 'admin' || userRole === 'editor') && (
+                      <Link 
+                        to="/write" 
+                        className="flex items-center px-2 py-1 text-gray-700 hover:text-blue-600"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Write
+                      </Link>
+                    )}
                     <button
                       onClick={() => {
                         signOut();
@@ -643,7 +647,7 @@ const Index = () => {
 
 
       {/* Floating Action Button for Write (Mobile) */}
-      {user && (
+      {user && (userRole === 'admin' || userRole === 'editor') && (
         <Link
           to="/write"
           className="fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-110 z-40 md:hidden"

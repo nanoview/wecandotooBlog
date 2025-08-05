@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 
 const Footer = () => {
+  const { userRole } = useAuth();
   const categories = [
     'Technology', 'Business', 'Design', 'Development', 
     'Education', 'Lifestyle', 'Travel', 'Other'
@@ -36,9 +38,11 @@ const Footer = () => {
               <Link to="/contact" className="block text-gray-300 hover:text-blue-400 transition-colors text-sm">
                 Contact
               </Link>
-              <Link to="/write" className="block text-gray-300 hover:text-blue-400 transition-colors text-sm">
-                Write
-              </Link>
+              {(userRole === 'admin' || userRole === 'editor') && (
+                <Link to="/write" className="block text-gray-300 hover:text-blue-400 transition-colors text-sm">
+                  Write
+                </Link>
+              )}
             </div>
           </div>
 
