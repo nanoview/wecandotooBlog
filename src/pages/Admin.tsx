@@ -61,7 +61,13 @@ const Admin = () => {
   const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
-    if (!loading && (!user || userRole !== 'admin')) {
+    // Don't redirect while still loading authentication state
+    if (loading) {
+      return;
+    }
+
+    // Redirect if user is not authenticated or not admin
+    if (!user || userRole !== 'admin') {
       navigate('/');
       return;
     }
