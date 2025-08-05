@@ -33,7 +33,7 @@ interface Draft {
 const WritePage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, loading: authLoading } = useAuth();
+  const { user, userRole, loading: authLoading } = useAuth();
   
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<any>(null);
@@ -41,16 +41,39 @@ const WritePage = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    // Don't redirect while still loading authentication state
+    if (authLoading) {
+      return;
+    }
+
     // Redirect to login if not authenticated
-    if (!authLoading && !user) {
+    if (!user) {
       navigate('/auth');
+      return;
+    }
+
+    // If user is authenticated but role is still loading, wait
+    if (user && userRole === null) {
+      return;
+    }
+
+    // Redirect if user is not admin or editor
+    if (user && userRole !== 'admin' && userRole !== 'editor') {
+      toast({
+        title: "Access Denied",
+        description: "You need admin or editor privileges to access the writing page.",
+        variant: "destructive"
+      });
+      navigate('/');
       return;
     }
     
     // Load drafts from localStorage for now
     // In production, you'd fetch from your backend
-    loadDrafts();
-  }, [user, authLoading, navigate]);
+    if (user && (userRole === 'admin' || userRole === 'editor')) {
+      loadDrafts();
+    }
+  }, [user, userRole, authLoading, navigate, toast]);
 
   const loadDrafts = () => {
     try {
