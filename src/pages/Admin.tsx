@@ -65,7 +65,24 @@ const Admin = () => {
   const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
-    if (!loading && (!user || userRole !== 'admin')) {
+    // Don't redirect while still loading authentication state
+    if (loading) {
+      return;
+    }
+
+    // If user is not authenticated, redirect
+    if (!user) {
+      navigate('/');
+      return;
+    }
+
+    // If user is authenticated but role is still loading, wait
+    if (user && userRole === null) {
+      return;
+    }
+
+    // If user is authenticated but not admin, redirect
+    if (user && userRole !== 'admin') {
       navigate('/');
       return;
     }

@@ -3,8 +3,10 @@ import { ArrowLeft, Users, Target, Heart, Award } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import Footer from '@/components/Footer';
+import { useAuth } from '@/hooks/useAuth';
 
 const About = () => {
+  const { userRole } = useAuth();
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       {/* Header */}
@@ -122,11 +124,13 @@ const About = () => {
             Join thousands of writers and readers who call wecandotoo home.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/write">
-              <Button className="bg-white text-blue-600 hover:bg-gray-100 font-semibold">
-                Start Writing
-              </Button>
-            </Link>
+            {(userRole === 'admin' || userRole === 'editor') && (
+              <Link to="/write">
+                <Button className="bg-white text-blue-600 hover:bg-gray-100 font-semibold">
+                  Start Writing
+                </Button>
+              </Link>
+            )}
             
             <Link to="/">
               <Button variant="outline" className="border-white text-white hover:bg-white hover:text-blue-600">
