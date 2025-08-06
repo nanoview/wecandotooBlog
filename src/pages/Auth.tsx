@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -92,7 +93,17 @@ const Auth = () => {
         title: "Welcome back!",
         description: "You have been signed in successfully"
       });
-      navigate('/');
+
+      // Fetch latest user info after sign-in
+      const { data: { user: signedInUser } } = await supabase.auth.getUser();
+      const role =
+        signedInUser?.user_metadata?.role;
+
+      if (role === 'admin' || role === 'super_admin') {
+        navigate('/admin');
+      } else {
+        navigate('/');
+      }
     }
 
     setIsLoading(false);

@@ -11,6 +11,10 @@ import { useToast } from '@/hooks/use-toast';
 import { SupabaseGoogleDashboard } from '@/components/SupabaseGoogleDashboard';
 import { BlogPost } from '@/types/blog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import OverviewTab from '@/components/admin/OverviewTab';
+import PostsTab from '@/components/admin/PostsTab';
+import DashboardTab from '@/components/admin/DashboardTab';
+import SettingsTab from '@/components/admin/SettingsTab';
 
 interface Profile {
   id: string;
@@ -370,316 +374,33 @@ const Admin = () => {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Posts</CardTitle>
-                  <FileText className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{blogPosts.length}</div>
-                  <p className="text-xs text-muted-foreground">
-                    {blogPosts.filter(p => p.status === 'published').length} published
-                  </p>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{profiles.length}</div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Comments</CardTitle>
-                  <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{comments.length}</div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Editors</CardTitle>
-                  <Settings className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {profiles.filter(p => p.user_roles[0]?.role === 'editor').length}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <OverviewTab
+              blogPosts={blogPosts}
+              profiles={profiles}
+              comments={comments}
+              userRole={userRole}
+              username={username}
+              updateUserRole={updateUserRole}
+            />
+          </TabsContent>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Users Management - only visible to admin users */}
-          {userRole === 'admin' && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  User Management
-                </CardTitle>
-                <CardDescription>
-                  Manage user roles and permissions
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {profiles.map((profile) => (
-                    <div key={profile.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div>
-                        <p className="font-medium">{profile.display_name}</p>
-                        <p className="text-sm text-muted-foreground">@{profile.username}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Joined {new Date(profile.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={getRoleBadgeVariant(profile.user_roles[0]?.role || 'user')}>
-                          {profile.user_roles[0]?.role || 'user'}
-                        </Badge>
-                        {profile.user_id !== user?.id && (
-                          <div className="flex gap-2">
-                            {profile.user_roles[0]?.role !== 'admin' && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => updateUserRole(profile.user_id, 'admin')}
-                                className="bg-red-50 hover:bg-red-100 text-red-600 border-red-200"
-                              >
-                                Make Admin
-                              </Button>
-                            )}
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => updateUserRole(profile.user_id, 'editor')}
-                              disabled={profile.user_roles[0]?.role === 'editor'}
-                              className="bg-primary/10 hover:bg-primary/20 text-primary border-primary/30"
-                            >
-                              ✨ Promote to Editor
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => updateUserRole(profile.user_id, 'user')}
-                              disabled={profile.user_roles[0]?.role === 'user'}
-                            >
-                              Make User
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          <TabsContent value="posts" className="space-y-6">
+            <PostsTab
+              blogPosts={blogPosts}
+              togglePostStatus={togglePostStatus}
+              deleteBlogPost={deleteBlogPost}
+            />
+          </TabsContent>
 
-          {/* Comments Management */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MessageSquare className="w-5 h-5" />
-                Comments Management
-              </CardTitle>
-              <CardDescription>
-                Monitor and manage user comments
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4 max-h-96 overflow-y-auto">
-                {comments.map((comment) => (
-                  <div key={comment.id} className="p-3 border rounded-lg space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-sm">
-                          {comment.profiles?.display_name}
-                        </span>
-                        <Badge variant="outline" className="text-xs">
-                          Post {comment.blog_post_id}
-                        </Badge>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => deleteComment(comment.id)}
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                    <p className="text-sm text-muted-foreground">{comment.content}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(comment.created_at).toLocaleString()}
-                    </p>
-                  </div>
-                ))}
-                {comments.length === 0 && (
-                  <p className="text-center text-muted-foreground py-8">
-                    No comments yet
-                  </p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+          <TabsContent value="dashboard" className="space-y-6">
+            <DashboardTab />
+          </TabsContent>
 
+          <TabsContent value="settings" className="space-y-6">
+            <SettingsTab />
+          </TabsContent>
 
-      </TabsContent>
-
-      <TabsContent value="posts" className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">Blog Posts Management</h2>
-          <Button onClick={() => navigate('/write')} className="flex items-center gap-2">
-            <Plus className="w-4 h-4" />
-            Create New Post
-          </Button>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5" />
-              All Blog Posts
-            </CardTitle>
-            <CardDescription>
-              Manage, edit, and delete your blog posts
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {blogPosts.map((post) => (
-                <div key={post.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-medium text-lg">{post.title}</h3>
-                      <Badge variant={post.status === 'published' ? 'default' : 'secondary'}>
-                        {post.status}
-                      </Badge>
-                      {post.category && (
-                        <Badge variant="outline">{post.category}</Badge>
-                      )}
-                    </div>
-                    
-                    {post.excerpt && (
-                      <p className="text-gray-600 text-sm mb-2 line-clamp-2">{post.excerpt}</p>
-                    )}
-                    
-                    <div className="flex items-center gap-4 text-xs text-gray-500">
-                      <span>By {post.profiles?.display_name || 'Unknown'}</span>
-                      <span>Created: {new Date(post.created_at).toLocaleDateString()}</span>
-                      {post.published_at && (
-                        <span>Published: {new Date(post.published_at).toLocaleDateString()}</span>
-                      )}
-                      <span className="font-mono text-blue-600">/{post.slug}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 ml-4">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => navigate(`/${post.slug}`)}
-                      className="flex items-center gap-2"
-                    >
-                      <Eye className="w-4 h-4" />
-                      View
-                    </Button>
-                    
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => navigate(`/edit/${post.slug}`)}
-                      className="flex items-center gap-2"
-                    >
-                      <Edit className="w-4 h-4" />
-                      Edit
-                    </Button>
-                    
-                    <Button
-                      size="sm"
-                      variant={post.status === 'published' ? 'secondary' : 'default'}
-                      onClick={() => togglePostStatus(post.id, post.status)}
-                    >
-                      {post.status === 'published' ? 'Unpublish' : 'Publish'}
-                    </Button>
-                    
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button size="sm" variant="destructive" className="flex items-center gap-2">
-                          <Trash2 className="w-4 h-4" />
-                          Delete
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Blog Post</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete "{post.title}"? This action cannot be undone.
-                            This will also delete all comments associated with this post.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => deleteBlogPost(post.id)}
-                            className="bg-red-600 hover:bg-red-700"
-                          >
-                            Delete Post
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </div>
-              ))}
-              
-              {blogPosts.length === 0 && (
-                <div className="text-center py-12">
-                  <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No blog posts yet</h3>
-                  <p className="text-gray-600 mb-4">Get started by creating your first blog post.</p>
-                  <Button onClick={() => navigate('/write')}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Create Your First Post
-                  </Button>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
-
-      <TabsContent value="dashboard" className="space-y-6">
-        <SupabaseGoogleDashboard />
-      </TabsContent>
-
-
-
-      <TabsContent value="settings" className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>System Settings</CardTitle>
-            <CardDescription>
-              Configure system-wide settings and preferences
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-gray-600">Additional settings panel coming soon...</p>
-          </CardContent>
-        </Card>
-      </TabsContent>
-
-    </Tabs>
+        </Tabs>
       </div>
     </div>
   );
