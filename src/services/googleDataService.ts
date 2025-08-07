@@ -74,7 +74,16 @@ export class GoogleDataService {
    * Initiate Google OAuth authentication
    */
   authenticate(): void {
-    this.oauth.initiateOAuth();
+    // Redirect to Google OAuth with our edge function as callback
+    const authUrl = new URL('https://accounts.google.com/oauth2/auth');
+    authUrl.searchParams.set('client_id', '1027447916816-vh0v1h6qrkcfqiocte8s5d51r3ukg5uc.apps.googleusercontent.com');
+    authUrl.searchParams.set('redirect_uri', 'https://rowcloxlszwnowlggqon.supabase.co/functions/v1/google-oauth');
+    authUrl.searchParams.set('response_type', 'code');
+    authUrl.searchParams.set('scope', 'https://www.googleapis.com/auth/adsense.readonly https://www.googleapis.com/auth/analytics.readonly https://www.googleapis.com/auth/webmasters.readonly');
+    authUrl.searchParams.set('access_type', 'offline');
+    authUrl.searchParams.set('prompt', 'consent');
+    
+    window.open(authUrl.toString(), '_blank', 'width=500,height=600');
   }
 
   /**
