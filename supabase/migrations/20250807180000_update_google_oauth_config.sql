@@ -1,11 +1,12 @@
 -- Update Google OAuth configuration with new client credentials
 -- Date: 2025-08-07
+-- NOTE: This migration contains placeholder values - actual secrets should be set via environment variables
 
 -- First, let's update the existing google_site_kit table with the new OAuth credentials
 UPDATE google_site_kit 
 SET 
-  oauth_client_id = '622861962504-a2ob64p9ve0drgal7ncoujm58mmsitjr.apps.googleusercontent.com',
-  oauth_client_secret = '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',
+  oauth_client_id = 'your_google_oauth_client_id_here',
+  oauth_client_secret = 'your_google_oauth_client_secret_here',
   oauth_redirect_uri = 'https://rowcloxlszwnowlggqon.supabase.co/functions/v1/google-oauth',
   updated_at = timezone('utc'::text, now())
 WHERE id IN (SELECT id FROM google_site_kit LIMIT 1);
@@ -22,8 +23,8 @@ INSERT INTO google_site_kit (
   enable_search_console
 )
 SELECT 
-  '622861962504-a2ob64p9ve0drgal7ncoujm58mmsitjr.apps.googleusercontent.com',
-  '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',
+  'your_google_oauth_client_id_here',
+  'your_google_oauth_client_secret_here',
   'https://rowcloxlszwnowlggqon.supabase.co/functions/v1/google-oauth',
   ARRAY[
     'https://www.googleapis.com/auth/adsense.readonly',
@@ -53,8 +54,8 @@ CREATE TABLE IF NOT EXISTS environment_config (
 -- Insert or update environment configuration
 INSERT INTO environment_config (key, value, description, is_secret)
 VALUES 
-  ('VITE_GOOGLE_OAUTH_CLIENT_ID', '622861962504-a2ob64p9ve0drgal7ncoujm58mmsitjr.apps.googleusercontent.com', 'Google OAuth Client ID', FALSE),
-  ('GOOGLE_OAUTH_CLIENT_SECRET', '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', 'Google OAuth Client Secret', TRUE),
+  ('VITE_GOOGLE_OAUTH_CLIENT_ID', 'your_google_oauth_client_id_here', 'Google OAuth Client ID', FALSE),
+  ('GOOGLE_OAUTH_CLIENT_SECRET', 'your_google_oauth_client_secret_here', 'Google OAuth Client Secret', TRUE),
   ('VITE_GOOGLE_OAUTH_REDIRECT_URI', 'https://rowcloxlszwnowlggqon.supabase.co/functions/v1/google-oauth', 'Google OAuth Redirect URI', FALSE),
   ('GOOGLE_PROJECT_ID', 'wecandotoo', 'Google Cloud Project ID', FALSE)
 ON CONFLICT (key) DO UPDATE SET

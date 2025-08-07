@@ -76,7 +76,7 @@ export class GoogleDataService {
   authenticate(): void {
     // Redirect to Google OAuth with our edge function as callback
     const authUrl = new URL('https://accounts.google.com/oauth2/auth');
-    authUrl.searchParams.set('client_id', '622861962504-a2ob64p9ve0drgal7ncoujm58mmsitjr.apps.googleusercontent.com');
+    authUrl.searchParams.set('client_id', import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID || '');
     authUrl.searchParams.set('redirect_uri', 'https://rowcloxlszwnowlggqon.supabase.co/functions/v1/google-oauth');
     authUrl.searchParams.set('response_type', 'code');
     authUrl.searchParams.set('scope', 'https://www.googleapis.com/auth/adsense.readonly https://www.googleapis.com/auth/analytics.readonly https://www.googleapis.com/auth/webmasters.readonly');

@@ -37,6 +37,9 @@ auth-tokens
 google-client-secret
 google-oauth-config.json
 google-service-account.json
+client_secret_*.json
+**/client_secret_*.json
+*.googleapis.com.json
 
 # Editor directories and files
 .vscode/*
