@@ -4,6 +4,7 @@ import { Plus, FileText, Clock, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import Header from '@/components/navigation/Header';
 import PostEditor from '@/components/PostEditor';
 import { createBlogPost, updateBlogPost } from '@/services/blogService';
 import { useToast } from '@/hooks/use-toast';
@@ -210,6 +211,9 @@ const WritePage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
+      <Header variant="simple" />
+      
+      {/* Write Title Section */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-6xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">

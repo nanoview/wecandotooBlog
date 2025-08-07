@@ -1,25 +1,15 @@
-
-import { Link } from 'react-router-dom';
-import { ArrowLeft, Mail, MessageSquare, Phone, MapPin } from 'lucide-react';
+import { Mail, MessageSquare, Phone, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import Header from '@/components/navigation/Header';
 
 const Contact = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <Link to="/">
-            <Button variant="ghost" className="mb-4">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Home
-            </Button>
-          </Link>
-        </div>
-      </header>
+      <Header variant="simple" />
 
       {/* Hero Section */}
       <section className="py-16 px-4">

@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, MessageSquare, Shield, Settings, ArrowLeft, LogOut, BarChart3, FileText, Edit, Trash2, Plus, Eye } from 'lucide-react';
+import { Users, MessageSquare, Shield, Settings, LogOut, BarChart3, FileText, Edit, Trash2, Plus, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import Header from '@/components/navigation/Header';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -342,32 +343,22 @@ const Admin = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <Header variant="simple" />
+      
+      {/* Admin Title Section */}
+      <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Button variant="ghost" onClick={() => navigate('/')}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Blog
-            </Button>
-            <div className="flex items-center gap-2">
-              <Shield className="w-5 h-5 text-primary" />
-              <h1 className="text-xl font-semibold">Admin Panel</h1>
-              {isNanopro && (
-                <Badge variant="default" className="bg-gradient-to-r from-purple-500 to-blue-500 text-white">
-                  Super Admin
-                </Badge>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">Welcome, {username}</span>
-              <Button variant="outline" size="sm" onClick={signOut}>
-                <LogOut className="w-4 h-4 mr-2" />
-                Sign Out
-              </Button>
-            </div>
+          <div className="flex items-center justify-center gap-2">
+            <Shield className="w-5 h-5 text-primary" />
+            <h1 className="text-xl font-semibold">Admin Panel</h1>
+            {isNanopro && (
+              <Badge variant="default" className="bg-gradient-to-r from-purple-500 to-blue-500 text-white">
+                Super Admin
+              </Badge>
+            )}
           </div>
         </div>
-      </header>
+      </div>
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         <Tabs defaultValue="overview" className="space-y-6">

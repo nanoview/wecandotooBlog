@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Calendar, User, Tag, ChevronRight, Star, LogIn, Settings, LogOut, Loader2, PenTool, Edit, MoreVertical } from 'lucide-react';
+import { Search, Calendar, User, Tag, ChevronRight, Star, Loader2, LogIn, PenTool } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import BlogPost from '@/components/BlogPost';
 import CategoryFilter from '@/components/CategoryFilter';
 import GoogleAd from '@/components/GoogleAd';
+import Header from '@/components/navigation/Header';
 import { categories as fallbackCategories } from '@/data/blogData';
 import { useAuth } from '@/hooks/useAuth';
 import { fetchBlogPosts, fetchCategories, searchBlogPosts, fetchBlogPostsByCategory } from '@/services/blogService';
@@ -34,7 +35,6 @@ const Index = () => {
   const isAdmin = userRole === 'admin';
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Load initial data
   useEffect(() => {
@@ -196,189 +196,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-6xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">W</span>
-              </div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                wecandotoo
-              </h1>
-            </div>
-            
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center space-x-8">
-              <Link to="/" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
-                Home
-              </Link>
-              <Link to="/about" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
-                About
-              </Link>
-              <Link to="/contact" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
-                Contact
-              </Link>
-              {!user ? (
-                <Link to="/auth">
-                  <Button>
-                    <LogIn className="w-4 h-4 mr-2" />
-                    Sign In
-                  </Button>
-                </Link>
-              ) : (
-                <div className="flex items-center space-x-4">
-                  {/* Mini profile dropdown */}
-                  <div className="relative group">
-                    <button className="flex items-center space-x-2 focus:outline-none">
-                      <User className="w-6 h-6 text-gray-600" />
-                      <span className="text-sm font-semibold text-gray-700">{username || user.email?.split('@')[0]}</span>
-                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
-                    </button>
-                    <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity z-50">
-                      <div className="px-4 py-3 border-b border-gray-100">
-                        <div className="font-medium text-gray-900 truncate">{username || user.email?.split('@')[0]}</div>
-                        <div className="text-xs text-gray-500 truncate">{user.email}</div>
-                        <div className="mt-1">
-                          <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full capitalize ${
-                            isNanopro 
-                              ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white'
-                              : 'bg-gray-100 text-gray-700'
-                          }`}>
-                            {isNanopro ? 'Super Admin' : userRole || 'user'}
-                          </span>
-                        </div>
-                      </div>
-                      {isAdmin && (
-                        <Link to="/admin" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                          <Settings className="inline w-4 h-4 mr-2 align-text-bottom" />Admin
-                        </Link>
-                      )}
-                      {(userRole === 'editor' || userRole === 'admin') && (
-                        <Link to="/editor-panel" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                          <PenTool className="inline w-4 h-4 mr-2 align-text-bottom" />Editor Dashboard
-                        </Link>
-                      )}
-                      {(userRole === 'admin' || userRole === 'editor') && (
-                        <Link to="/write" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                          <Edit className="inline w-4 h-4 mr-2 align-text-bottom" />Write
-                        </Link>
-                      )}
-                      <button
-                        onClick={signOut}
-                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 border-t border-gray-100"
-                      >
-                        <LogOut className="inline w-4 h-4 mr-2 align-text-bottom" />Sign Out
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </nav>
-            
-            {/* Mobile Three-Dot Menu Button */}
-            <div className="md:hidden">
-              <button 
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)} 
-                className="p-2 rounded-full hover:bg-gray-100"
-              >
-                <MoreVertical className="w-6 h-6 text-gray-700" />
-              </button>
-            </div>
-          </div>
-          
-          {/* Mobile Menu Dropdown */}
-          {mobileMenuOpen && (
-            <div className="md:hidden pt-4 pb-2 border-t mt-4 transition-all">
-              <nav className="flex flex-col space-y-3">
-                <Link 
-                  to="/" 
-                  className="px-2 py-1 text-gray-700 hover:text-blue-600 font-medium transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Home
-                </Link>
-                <Link 
-                  to="/about" 
-                  className="px-2 py-1 text-gray-700 hover:text-blue-600 font-medium transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  About
-                </Link>
-                <Link 
-                  to="/contact" 
-                  className="px-2 py-1 text-gray-700 hover:text-blue-600 font-medium transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Contact
-                </Link>
-                {!user ? (
-                  <Link 
-                    to="/auth" 
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center"
-                  >
-                    <Button size="sm" className="w-full justify-start">
-                      <LogIn className="w-4 h-4 mr-2" />
-                      Sign In
-                    </Button>
-                  </Link>
-                ) : (
-                  <div className="border-t pt-2">
-                    <div className="px-2 py-1 flex items-center space-x-2">
-                      <User className="w-5 h-5 text-gray-600" />
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{username || user.email?.split('@')[0]}</div>
-                        <div className="text-xs text-gray-500">{userRole || 'user'}</div>
-                      </div>
-                    </div>
-                    {isAdmin && (
-                      <Link 
-                        to="/admin" 
-                        className="flex items-center px-2 py-1 text-gray-700 hover:text-blue-600"
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        <Settings className="w-4 h-4 mr-2" />
-                        Admin
-                      </Link>
-                    )}
-                    {(userRole === 'editor' || userRole === 'admin') && (
-                      <Link 
-                        to="/editor-panel" 
-                        className="flex items-center px-2 py-1 text-gray-700 hover:text-blue-600"
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        <PenTool className="w-4 h-4 mr-2" />
-                        Editor Dashboard
-                      </Link>
-                    )}
-                    {(userRole === 'admin' || userRole === 'editor') && (
-                      <Link 
-                        to="/write" 
-                        className="flex items-center px-2 py-1 text-gray-700 hover:text-blue-600"
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        <Edit className="w-4 h-4 mr-2" />
-                        Write
-                      </Link>
-                    )}
-                    <button
-                      onClick={() => {
-                        signOut();
-                        setMobileMenuOpen(false);
-                      }}
-                      className="w-full flex items-center px-2 py-1 text-red-600 hover:bg-gray-100 mt-1"
-                    >
-                      <LogOut className="w-4 h-4 mr-2" />
-                      Sign Out
-                    </button>
-                  </div>
-                )}
-              </nav>
-            </div>
-          )}
-        </div>
-      </header>
+      <Header variant="full" />
 
       {/* Hero Section */}
       <section className="py-16 px-4">
