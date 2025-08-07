@@ -18,17 +18,45 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
     );
 
-    const { code, action } = await req.json();
-
-    if (action === 'exchange_code') {
-      return await exchangeCodeForTokens(supabase, code);
-    } else if (action === 'refresh_tokens') {
-      return await refreshTokens(supabase);
-    } else if (action === 'check_status') {
-      return await checkConnectionStatus(supabase);
+    const url = new URL(req.url);
+    
+    // Handle OAuth callback from Google (GET request with code parameter)
+    if (req.method === 'GET' && url.searchParams.has('code')) {
+      const code = url.searchParams.get('code')!;
+      const result = await exchangeCodeForTokens(supabase, code);
+      
+      // Return a simple HTML page that closes the popup and notifies parent
+      const htmlResponse = `
+        <!DOCTYPE html>
+        <html>
+        <head><title>Google OAuth Success</title></head>
+        <body>
+          <script>
+            window.opener?.postMessage({type: 'oauth_success'}, '*');
+            window.close();
+          </script>
+          <p>Authorization successful! You can close this window.</p>
+        </body>
+        </html>
+      `;
+      
+      return new Response(htmlResponse, {
+        headers: { ...corsHeaders, 'Content-Type': 'text/html' },
+      });
+    }
+    
+    // Handle API calls (POST requests)
+    if (req.method === 'POST') {
+      const { action } = await req.json();
+      
+      if (action === 'refresh_tokens') {
+        return await refreshTokens(supabase);
+      } else if (action === 'check_status') {
+        return await checkConnectionStatus(supabase);
+      }
     }
 
-    throw new Error('Invalid action specified');
+    throw new Error('Invalid request method or parameters');
 
   } catch (error) {
     console.error('Google OAuth error:', error);
@@ -68,7 +96,7 @@ async function exchangeCodeForTokens(supabase: any, code: string) {
       client_secret: Deno.env.get('GOOGLE_CLIENT_SECRET'),
       code: code,
       grant_type: 'authorization_code',
-      redirect_uri: config.oauth_redirect_uri
+      redirect_uri: 'https://rowcloxlszwnowlggqon.supabase.co/functions/v1/google-oauth'
     };
 
     console.log('Exchanging code for tokens...');
