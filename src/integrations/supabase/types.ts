@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           author_id: string
           category: string | null
+          category_id: string | null
           content: string
           created_at: string
           excerpt: string | null
@@ -33,6 +34,7 @@ export type Database = {
         Insert: {
           author_id: string
           category?: string | null
+          category_id?: string | null
           content: string
           created_at?: string
           excerpt?: string | null
@@ -48,6 +50,7 @@ export type Database = {
         Update: {
           author_id?: string
           category?: string | null
+          category_id?: string | null
           content?: string
           created_at?: string
           excerpt?: string | null
@@ -59,6 +62,54 @@ export type Database = {
           tags?: string[] | null
           title?: string
           updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blog_posts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "blog_posts_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      categories: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          name: string
+          slug: string
+          updated_at: string | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          slug: string
+          updated_at?: string | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          slug?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -358,6 +409,39 @@ export type Database = {
         }
         Relationships: []
       }
+      subscribers: {
+        Row: {
+          confirmation_token: string | null
+          confirmed_at: string | null
+          created_at: string | null
+          email: string
+          id: string
+          status: string
+          unsubscribed_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          confirmation_token?: string | null
+          confirmed_at?: string | null
+          created_at?: string | null
+          email: string
+          id?: string
+          status?: string
+          unsubscribed_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          confirmation_token?: string | null
+          confirmed_at?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          status?: string
+          unsubscribed_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -381,12 +465,32 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      subscriber_stats: {
+        Row: {
+          confirmed_count: number | null
+          pending_count: number | null
+          total_count: number | null
+          unsubscribed_count: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      can_edit_posts: {
+        Args: { user_id: string }
+        Returns: boolean
+      }
+      check_subscription_rate_limit: {
+        Args: { user_email: string }
+        Returns: boolean
+      }
       clean_expired_google_cache: {
         Args: Record<PropertyKey, never>
         Returns: number
+      }
+      generate_confirmation_token: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       get_current_user_role: {
         Args: Record<PropertyKey, never>
