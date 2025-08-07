@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, Code, Link, Image, List, Quote, Heading1, Heading2, Type } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -17,21 +17,92 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState('visual');
   const [htmlContent, setHtmlContent] = useState(initialContent);
+  const [isInitialized, setIsInitialized] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Save and restore cursor position
+  const saveCursorPosition = () => {
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      return selection.getRangeAt(0);
+    }
+    return null;
+  };
+
+  const restoreCursorPosition = (range: Range) => {
+    const selection = window.getSelection();
+    if (selection && range) {
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+  };
+
   const execCommand = (command: string, value: string | null = null) => {
+    const range = saveCursorPosition();
     document.execCommand(command, false, value);
     updateContent();
+    if (range) {
+      setTimeout(() => restoreCursorPosition(range), 0);
+    }
   };
 
   const updateContent = () => {
     if (editorRef.current) {
       const html = editorRef.current.innerHTML;
       const text = editorRef.current.innerText;
-      setHtmlContent(html);
+      // Only update htmlContent if it's actually different to avoid unnecessary re-renders
+      if (html !== htmlContent) {
+        setHtmlContent(html);
+      }
       onChange(html, text);
     }
+  };
+
+  // Initialize editor content only once
+  useEffect(() => {
+    if (editorRef.current && !isInitialized) {
+      if (initialContent) {
+        editorRef.current.innerHTML = initialContent;
+      }
+      setIsInitialized(true);
+    }
+  }, [initialContent, isInitialized]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Enter') {
+      // Prevent default to handle Enter manually
+      e.preventDefault();
+      
+      // Insert a line break
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        const br = document.createElement('br');
+        const textNode = document.createTextNode('\n');
+        
+        range.deleteContents();
+        range.insertNode(br);
+        range.insertNode(textNode);
+        
+        // Move cursor after the line break
+        range.setStartAfter(textNode);
+        range.setEndAfter(textNode);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        
+        // Update content after a short delay to ensure cursor position is maintained
+        setTimeout(() => updateContent(), 0);
+      }
+      return;
+    }
+  };
+
+  const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
+    // Use requestAnimationFrame to delay the update and preserve cursor position
+    requestAnimationFrame(() => {
+      updateContent();
+    });
   };
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -48,6 +119,16 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
   return (
     <div className="border rounded-lg shadow-sm">
+      <style>{`
+        [contenteditable]:empty:before {
+          content: attr(data-placeholder);
+          color: #9ca3af;
+          font-style: italic;
+        }
+        [contenteditable]:focus:before {
+          content: none;
+        }
+      `}</style>
       <Tabs defaultValue="visual" onValueChange={setActiveTab}>
         <div className="border-b px-4">
           <TabsList className="w-full justify-start gap-4">
@@ -119,8 +200,15 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             ref={editorRef}
             className="min-h-[400px] p-4 prose prose-lg max-w-none focus:outline-none"
             contentEditable
-            onInput={updateContent}
-            dangerouslySetInnerHTML={{ __html: htmlContent }}
+            onInput={handleInput}
+            onKeyDown={handleKeyDown}
+            suppressContentEditableWarning={true}
+            style={{ 
+              whiteSpace: 'pre-wrap',
+              wordWrap: 'break-word',
+              lineHeight: '1.6'
+            }}
+            data-placeholder="Start writing your content..."
           />
           <input
             type="file"

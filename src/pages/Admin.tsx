@@ -10,6 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { SupabaseGoogleDashboard } from '@/components/SupabaseGoogleDashboard';
+import GoogleDataDashboard from '@/components/GoogleDataDashboard';
 import { BlogPost } from '@/types/blog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import OverviewTab from '@/components/admin/OverviewTab';
@@ -362,7 +363,7 @@ const Admin = () => {
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <Shield className="w-4 h-4" />
               Overview
@@ -371,9 +372,13 @@ const Admin = () => {
               <FileText className="w-4 h-4" />
               Blog Posts
             </TabsTrigger>
+            <TabsTrigger value="google" className="flex items-center gap-2">
+              <BarChart3 className="w-4 h-4" />
+              Google Analytics
+            </TabsTrigger>
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4" />
-              Analytics
+              Site Analytics
             </TabsTrigger>
             <TabsTrigger value="settings" className="flex items-center gap-2">
               <Settings className="w-4 h-4" />
@@ -398,6 +403,10 @@ const Admin = () => {
               togglePostStatus={togglePostStatus}
               deleteBlogPost={deleteBlogPost}
             />
+          </TabsContent>
+
+          <TabsContent value="google" className="space-y-6">
+            <GoogleDataDashboard />
           </TabsContent>
 
           <TabsContent value="dashboard" className="space-y-6">

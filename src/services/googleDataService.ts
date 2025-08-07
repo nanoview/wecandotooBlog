@@ -1,8 +1,7 @@
-// React Service for Google Data (using backend APIs)
-// This service calls your secure backend instead of Google APIs directly
+// Enhanced Google Data Service with Direct API Access
+// This service provides WordPress-like Google data access
 
-import React from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { GoogleOAuth } from './googleAPI';
 
 export interface GoogleAdSenseData {
   estimated_earnings: number;
@@ -20,9 +19,20 @@ export interface GoogleAnalyticsData {
   page_views: number;
   bounce_rate: number;
   avg_session_duration: number;
+  users: number;
   date_range: string;
   cached?: boolean;
   cached_at?: string;
+  top_pages?: Array<{
+    path: string;
+    views: number;
+    title?: string;
+  }>;
+  traffic_sources?: Array<{
+    source: string;
+    sessions: number;
+    percentage: number;
+  }>;
 }
 
 export interface GoogleSearchConsoleData {
@@ -33,78 +43,112 @@ export interface GoogleSearchConsoleData {
   date_range: string;
   cached?: boolean;
   cached_at?: string;
+  top_queries?: Array<{
+    query: string;
+    clicks: number;
+    impressions: number;
+    ctr: number;
+    position: number;
+  }>;
 }
 
 export class GoogleDataService {
-  private static async callBackendAPI(endpoint: string): Promise<any> {
-    try {
-      // Get current user session
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        throw new Error('Not authenticated');
-      }
+  private oauth: GoogleOAuth;
+  private propertyId: string;
+  private siteUrl: string;
 
-      // Call Supabase Edge Function
-      const { data, error } = await supabase.functions.invoke(endpoint, {
+  constructor() {
+    this.oauth = GoogleOAuth.getInstance();
+    this.propertyId = import.meta.env.VITE_GOOGLE_ANALYTICS_PROPERTY_ID || '';
+    this.siteUrl = import.meta.env.VITE_SITE_URL || 'https://wecandotoo.com';
+  }
+
+  /**
+   * Check if user is authenticated with Google
+   */
+  isAuthenticated(): boolean {
+    return this.oauth.isAuthenticated();
+  }
+
+  /**
+   * Initiate Google OAuth authentication
+   */
+  authenticate(): void {
+    this.oauth.initiateOAuth();
+  }
+
+  /**
+   * Sign out from Google services
+   */
+  signOut(): void {
+    this.oauth.signOut();
+  }
+
+  /**
+   * Get Google Analytics data
+   */
+  async getAnalyticsData(dateRange: '7d' | '30d' | '90d' = '30d'): Promise<GoogleAnalyticsData> {
+    const accessToken = await this.oauth.getAccessToken();
+    if (!accessToken) {
+      throw new Error('No valid access token available. Please authenticate with Google.');
+    }
+
+    const endDate = new Date();
+    const startDate = new Date();
+    
+    switch (dateRange) {
+      case '7d':
+        startDate.setDate(endDate.getDate() - 7);
+        break;
+      case '30d':
+        startDate.setDate(endDate.getDate() - 30);
+        break;
+      case '90d':
+        startDate.setDate(endDate.getDate() - 90);
+        break;
+    }
+
+    const formatDate = (date: Date) => date.toISOString().split('T')[0];
+
+    try {
+      // Get basic metrics using Google Analytics 4 API
+      const response = await fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${this.propertyId}:runReport`, {
+        method: 'POST',
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
         },
+        body: JSON.stringify({
+          dateRanges: [{
+            startDate: formatDate(startDate),
+            endDate: formatDate(endDate)
+          }],
+          metrics: [
+            { name: 'screenPageViews' },
+            { name: 'sessions' },
+            { name: 'activeUsers' },
+            { name: 'bounceRate' },
+            { name: 'averageSessionDuration' }
+          ]
+        })
       });
 
-      if (error) {
-        throw new Error(`Backend API error: ${error.message}`);
+      if (!response.ok) {
+        throw new Error(`Analytics API error: ${response.status} ${response.statusText}`);
       }
 
-      if (!data.success) {
-        throw new Error(data.error || 'Unknown backend error');
-      }
+      const data = await response.json();
+      const metrics = data.rows?.[0]?.metricValues || [];
 
-      return data;
-    } catch (error) {
-      console.error(`Error calling ${endpoint}:`, error);
-      throw error;
-    }
-  }
-
-  // Fetch AdSense earnings data
-  static async getAdSenseData(): Promise<GoogleAdSenseData> {
-    try {
-      const response = await this.callBackendAPI('google-adsense');
-      
-      // Transform Google API response to our format
-      const rawData = response.data;
-      
       return {
-        estimated_earnings: this.extractMetricValue(rawData, 'ESTIMATED_EARNINGS'),
-        page_views: this.extractMetricValue(rawData, 'PAGE_VIEWS'),
-        clicks: this.extractMetricValue(rawData, 'CLICKS'),
-        ad_requests: this.extractMetricValue(rawData, 'AD_REQUESTS'),
-        ctr: this.extractMetricValue(rawData, 'AD_REQUESTS_CTR'),
-        date_range: 'Last 7 days',
-        cached: response.cached || false,
-        cached_at: response.cached_at
-      };
-    } catch (error) {
-      console.error('Error fetching AdSense data:', error);
-      throw error;
-    }
-  }
-
-  // Fetch Analytics traffic data
-  static async getAnalyticsData(): Promise<GoogleAnalyticsData> {
-    try {
-      const response = await this.callBackendAPI('google-analytics');
-      const rawData = response.data;
-      
-      return {
-        sessions: this.extractAnalyticsMetric(rawData, 'ga:sessions'),
-        page_views: this.extractAnalyticsMetric(rawData, 'ga:pageviews'),
-        bounce_rate: this.extractAnalyticsMetric(rawData, 'ga:bounceRate'),
-        avg_session_duration: this.extractAnalyticsMetric(rawData, 'ga:avgSessionDuration'),
-        date_range: 'Last 30 days',
-        cached: response.cached || false,
-        cached_at: response.cached_at
+        page_views: parseInt(metrics[0]?.value || '0'),
+        sessions: parseInt(metrics[1]?.value || '0'),
+        users: parseInt(metrics[2]?.value || '0'),
+        bounce_rate: parseFloat(metrics[3]?.value || '0'),
+        avg_session_duration: parseFloat(metrics[4]?.value || '0'),
+        date_range: dateRange,
+        cached: false,
+        cached_at: new Date().toISOString()
       };
     } catch (error) {
       console.error('Error fetching Analytics data:', error);
@@ -112,20 +156,61 @@ export class GoogleDataService {
     }
   }
 
-  // Fetch Search Console performance data
-  static async getSearchConsoleData(): Promise<GoogleSearchConsoleData> {
+  /**
+   * Get Google Search Console data
+   */
+  async getSearchConsoleData(dateRange: '7d' | '30d' | '90d' = '30d'): Promise<GoogleSearchConsoleData> {
+    const accessToken = await this.oauth.getAccessToken();
+    if (!accessToken) {
+      throw new Error('No valid access token available. Please authenticate with Google.');
+    }
+
+    const endDate = new Date();
+    const startDate = new Date();
+    
+    switch (dateRange) {
+      case '7d':
+        startDate.setDate(endDate.getDate() - 7);
+        break;
+      case '30d':
+        startDate.setDate(endDate.getDate() - 30);
+        break;
+      case '90d':
+        startDate.setDate(endDate.getDate() - 90);
+        break;
+    }
+
+    const formatDate = (date: Date) => date.toISOString().split('T')[0];
+
     try {
-      const response = await this.callBackendAPI('google-search-console');
-      const rawData = response.data;
-      
+      const response = await fetch(`https://searchconsole.googleapis.com/webmasters/v3/sites/${encodeURIComponent(this.siteUrl)}/searchAnalytics/query`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          startDate: formatDate(startDate),
+          endDate: formatDate(endDate),
+          aggregationType: 'auto'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Search Console API error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const summary = data.rows?.[0] || {};
+
       return {
-        impressions: rawData.impressions || 0,
-        clicks: rawData.clicks || 0,
-        ctr: rawData.ctr || 0,
-        average_position: rawData.position || 0,
-        date_range: 'Last 30 days',
-        cached: response.cached || false,
-        cached_at: response.cached_at
+        impressions: summary.impressions || 0,
+        clicks: summary.clicks || 0,
+        ctr: summary.ctr || 0,
+        average_position: summary.position || 0,
+        date_range: dateRange,
+        cached: false,
+        cached_at: new Date().toISOString()
       };
     } catch (error) {
       console.error('Error fetching Search Console data:', error);
@@ -133,135 +218,97 @@ export class GoogleDataService {
     }
   }
 
-  // Check Google services connection status
-  static async getConnectionStatus(): Promise<{
-    is_connected: boolean;
-    last_sync: string | null;
-    services: {
-      adsense: boolean;
-      analytics: boolean;
-      search_console: boolean;
+  /**
+   * Get Google AdSense data
+   */
+  async getAdSenseData(dateRange: '7d' | '30d' | '90d' = '30d'): Promise<GoogleAdSenseData> {
+    const accessToken = await this.oauth.getAccessToken();
+    if (!accessToken) {
+      throw new Error('No valid access token available. Please authenticate with Google.');
     }
-  }> {
+
+    const endDate = new Date();
+    const startDate = new Date();
+    
+    switch (dateRange) {
+      case '7d':
+        startDate.setDate(endDate.getDate() - 7);
+        break;
+      case '30d':
+        startDate.setDate(endDate.getDate() - 30);
+        break;
+      case '90d':
+        startDate.setDate(endDate.getDate() - 90);
+        break;
+    }
+
+    const formatDate = (date: Date) => date.toISOString().split('T')[0];
+
     try {
-      const response = await this.callBackendAPI('google-status');
-      return response.data;
-    } catch (error) {
-      console.error('Error checking connection status:', error);
+      // Get AdSense account first
+      const accountsResponse = await fetch('https://adsense.googleapis.com/v2/accounts', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+
+      if (!accountsResponse.ok) {
+        throw new Error(`AdSense Accounts API error: ${accountsResponse.status}`);
+      }
+
+      const accountsData = await accountsResponse.json();
+      const account = accountsData.accounts?.[0];
+      
+      if (!account) {
+        throw new Error('No AdSense account found');
+      }
+
+      // Get earnings report
+      const reportsResponse = await fetch(`https://adsense.googleapis.com/v2/${account.name}/reports:generate`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          dateRange: {
+            startDate: formatDate(startDate),
+            endDate: formatDate(endDate)
+          },
+          metrics: ['ESTIMATED_EARNINGS', 'PAGE_VIEWS', 'CLICKS', 'AD_REQUESTS', 'CTR']
+        })
+      });
+
+      if (!reportsResponse.ok) {
+        throw new Error(`AdSense Reports API error: ${reportsResponse.status}`);
+      }
+
+      const reportsData = await reportsResponse.json();
+      const row = reportsData.rows?.[0] || {};
+
       return {
-        is_connected: false,
-        last_sync: null,
-        services: {
-          adsense: false,
-          analytics: false,
-          search_console: false
-        }
+        estimated_earnings: parseFloat(row.cells?.[0]?.value || '0'),
+        page_views: parseInt(row.cells?.[1]?.value || '0'),
+        clicks: parseInt(row.cells?.[2]?.value || '0'),
+        ad_requests: parseInt(row.cells?.[3]?.value || '0'),
+        ctr: parseFloat(row.cells?.[4]?.value || '0'),
+        date_range: dateRange,
+        cached: false,
+        cached_at: new Date().toISOString()
       };
-    }
-  }
-
-  // Refresh Google OAuth tokens
-  static async refreshTokens(): Promise<boolean> {
-    try {
-      const response = await this.callBackendAPI('google-refresh-tokens');
-      return response.success;
     } catch (error) {
-      console.error('Error refreshing tokens:', error);
-      return false;
+      console.error('Error fetching AdSense data:', error);
+      throw error;
     }
   }
 
-  // Helper methods to extract data from Google API responses
-  private static extractMetricValue(data: any, metric: string): number {
-    try {
-      if (data?.rows && data.rows.length > 0) {
-        const metricIndex = data.headers?.findIndex((h: any) => h.name === metric);
-        if (metricIndex >= 0 && data.rows[0].cells[metricIndex]) {
-          return parseFloat(data.rows[0].cells[metricIndex].value) || 0;
-        }
-      }
-      return 0;
-    } catch {
-      return 0;
-    }
-  }
-
-  private static extractAnalyticsMetric(data: any, metric: string): number {
-    try {
-      if (data?.reports && data.reports.length > 0) {
-        const report = data.reports[0];
-        if (report.data?.totals && report.data.totals.length > 0) {
-          const metricIndex = report.columnHeader?.metricHeader?.metricHeaderEntries
-            ?.findIndex((m: any) => m.name === metric);
-          if (metricIndex >= 0) {
-            return parseFloat(report.data.totals[0].values[metricIndex]) || 0;
-          }
-        }
-      }
-      return 0;
-    } catch {
-      return 0;
-    }
+  /**
+   * Handle OAuth callback
+   */
+  async handleOAuthCallback(code: string, state: string): Promise<boolean> {
+    return this.oauth.handleCallback(code, state);
   }
 }
 
-// React Hook for Google Data
-export const useGoogleData = () => {
-  const [adsenseData, setAdSenseData] = React.useState<GoogleAdSenseData | null>(null);
-  const [analyticsData, setAnalyticsData] = React.useState<GoogleAnalyticsData | null>(null);
-  const [searchConsoleData, setSearchConsoleData] = React.useState<GoogleSearchConsoleData | null>(null);
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-
-  const fetchAllData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Check connection status first
-      const status = await GoogleDataService.getConnectionStatus();
-      
-      if (!status.is_connected) {
-        throw new Error('Google services not connected');
-      }
-
-      // Fetch all data in parallel
-      const [adsense, analytics, searchConsole] = await Promise.allSettled([
-        GoogleDataService.getAdSenseData(),
-        GoogleDataService.getAnalyticsData(),
-        GoogleDataService.getSearchConsoleData()
-      ]);
-
-      // Set data based on results
-      if (adsense.status === 'fulfilled') {
-        setAdSenseData(adsense.value);
-      }
-      if (analytics.status === 'fulfilled') {
-        setAnalyticsData(analytics.value);
-      }
-      if (searchConsole.status === 'fulfilled') {
-        setSearchConsoleData(searchConsole.value);
-      }
-
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch Google data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const refreshData = () => fetchAllData();
-
-  React.useEffect(() => {
-    fetchAllData();
-  }, []);
-
-  return {
-    adsenseData,
-    analyticsData,
-    searchConsoleData,
-    loading,
-    error,
-    refreshData
-  };
-};
+// Export singleton instance
+export const googleDataService = new GoogleDataService();

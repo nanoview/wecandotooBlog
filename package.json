@@ -10,7 +10,15 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "setup:google-site-kit": "node setup-google-site-kit.js",
-    "populate:google-site-kit": "node populate-google-site-kit.js"
+    "populate:google-site-kit": "node populate-google-site-kit.js",
+    "supabase:deploy": "npx supabase functions deploy --import-map ./import_map.json",
+    "supabase:list": "npx supabase functions list",
+    "supabase:serve": "npx supabase functions serve",
+    "supabase:status": "npx supabase status",
+    "sync": "powershell -ExecutionPolicy Bypass -File ./sync-functions.ps1",
+    "sync:deploy": "powershell -ExecutionPolicy Bypass -File ./sync-functions.ps1 deploy",
+    "sync:list": "powershell -ExecutionPolicy Bypass -File ./sync-functions.ps1 list",
+    "sync:serve": "powershell -ExecutionPolicy Bypass -File ./sync-functions.ps1 serve"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
