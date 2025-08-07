@@ -1,7 +1,7 @@
 // Google OAuth and API configuration
 export const googleOAuthConfig = {
   clientId: import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID || '',
-  redirectUri: import.meta.env.VITE_GOOGLE_OAUTH_REDIRECT_URI || `http://localhost:5173/oauth/callback`,
+  redirectUri: import.meta.env.VITE_GOOGLE_OAUTH_REDIRECT_URI || `http://localhost:8080/oauth/callback`,
   scopes: [
     'https://www.googleapis.com/auth/adsense.readonly',
     'https://www.googleapis.com/auth/analytics.readonly',
