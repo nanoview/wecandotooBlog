@@ -74,15 +74,19 @@ export class GoogleDataService {
    * Initiate Google OAuth authentication
    */
   authenticate(): void {
+    // Use the client ID from environment variables or fallback to the stored one
+    const clientId = import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID || '622861962504-a2ob64p9ve0drgal7ncoujm58mmsitjr.apps.googleusercontent.com';
+    
     // Redirect to Google OAuth with our edge function as callback
     const authUrl = new URL('https://accounts.google.com/oauth2/auth');
-    authUrl.searchParams.set('client_id', import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID || '');
+    authUrl.searchParams.set('client_id', clientId);
     authUrl.searchParams.set('redirect_uri', 'https://rowcloxlszwnowlggqon.supabase.co/functions/v1/google-oauth');
     authUrl.searchParams.set('response_type', 'code');
     authUrl.searchParams.set('scope', 'https://www.googleapis.com/auth/adsense.readonly https://www.googleapis.com/auth/analytics.readonly https://www.googleapis.com/auth/webmasters.readonly');
     authUrl.searchParams.set('access_type', 'offline');
     authUrl.searchParams.set('prompt', 'consent');
     
+    console.log('Initiating Google OAuth with URL:', authUrl.toString());
     window.open(authUrl.toString(), '_blank', 'width=500,height=600');
   }
 

@@ -15,4 +15,20 @@ Enable these APIs:
 - AdSense Management API: https://console.cloud.google.com/apis/library/adsense.googleapis.com
 - Search Console API: https://console.cloud.google.com/apis/library/searchconsole.googleapis.com
 
-# After enabling APIs, the OAuth flow should work correctly.
+# OAuth Configuration Status:
+✅ **OAuth URL Generated**: 
+```
+https://accounts.google.com/oauth2/auth?client_id=622861962504-a2ob64p9ve0drgal7ncoujm58mmsitjr.apps.googleusercontent.com&redirect_uri=https%3A%2F%2Frowcloxlszwnowlggqon.supabase.co%2Ffunctions%2Fv1%2Fgoogle-oauth&response_type=code&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fadsense.readonly+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fanalytics.readonly+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fwebmasters.readonly&access_type=offline&prompt=consent
+```
+
+✅ **Edge Function**: Deployed and ready
+✅ **Database Config**: OAuth credentials saved to Supabase
+✅ **Dev Server**: Running on http://localhost:8080/
+
+# 🚨 CRITICAL: Add Redirect URI to Google Cloud Console
+**In Google Cloud Console → Credentials → OAuth 2.0 Client ID, add this exact redirect URI:**
+```
+https://rowcloxlszwnowlggqon.supabase.co/functions/v1/google-oauth
+```
+
+# After enabling APIs and updating redirect URI, the OAuth flow should work correctly!

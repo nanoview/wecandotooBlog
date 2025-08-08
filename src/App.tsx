@@ -18,6 +18,7 @@ import BlogEditor from "./pages/BlogEditor";
 import Write from "./pages/Write";
 import Edit from "./pages/Edit";
 import OAuthCallback from "./pages/OAuthCallback";
+import GoogleServicesSetup from "./pages/GoogleServicesSetup";
 import { EditorPanel } from "./pages/EditorPanel";
 import NotFound from "./pages/NotFound";
 import ConfirmSubscription from "./pages/ConfirmSubscription";
@@ -46,6 +47,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/admin-login" element={<AdminLogin />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/google-services" element={<GoogleServicesSetup />} />
             <Route path="/oauth/callback" element={<OAuthCallback />} />
             <Route path="/editor" element={<BlogEditor />} />
             <Route path="/write" element={<Write />} />

@@ -23,26 +23,235 @@ serve(async (req) => {
     // Handle OAuth callback from Google (GET request with code parameter)
     if (req.method === 'GET' && url.searchParams.has('code')) {
       const code = url.searchParams.get('code')!;
-      const result = await exchangeCodeForTokens(supabase, code);
+      const state = url.searchParams.get('state');
       
-      // Return a simple HTML page that closes the popup and notifies parent
-      const htmlResponse = `
-        <!DOCTYPE html>
-        <html>
-        <head><title>Google OAuth Success</title></head>
-        <body>
-          <script>
-            window.opener?.postMessage({type: 'oauth_success'}, '*');
-            window.close();
-          </script>
-          <p>Authorization successful! You can close this window.</p>
-        </body>
-        </html>
-      `;
-      
-      return new Response(htmlResponse, {
-        headers: { ...corsHeaders, 'Content-Type': 'text/html' },
-      });
+      try {
+        const result = await exchangeCodeForTokens(supabase, code);
+        
+        // WordPress Site Kit style success page
+        const htmlResponse = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Google Connection Successful</title>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+              body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                margin: 0;
+                padding: 20px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+              }
+              .container {
+                background: white;
+                border-radius: 12px;
+                padding: 40px;
+                text-align: center;
+                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+                max-width: 400px;
+                width: 100%;
+              }
+              .success-icon {
+                width: 64px;
+                height: 64px;
+                background: #10b981;
+                border-radius: 50%;
+                margin: 0 auto 20px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                font-size: 24px;
+              }
+              .title {
+                color: #1f2937;
+                font-size: 24px;
+                font-weight: 600;
+                margin-bottom: 12px;
+              }
+              .subtitle {
+                color: #6b7280;
+                margin-bottom: 24px;
+                line-height: 1.5;
+              }
+              .services {
+                background: #f9fafb;
+                border-radius: 8px;
+                padding: 16px;
+                margin-bottom: 24px;
+              }
+              .service {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 8px 0;
+                border-bottom: 1px solid #e5e7eb;
+              }
+              .service:last-child {
+                border-bottom: none;
+              }
+              .service-name {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+              }
+              .connected {
+                color: #10b981;
+                font-size: 12px;
+                display: flex;
+                align-items: center;
+                gap: 4px;
+              }
+              .closing-message {
+                color: #6b7280;
+                font-size: 14px;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="success-icon">✓</div>
+              <h1 class="title">Successfully Connected!</h1>
+              <p class="subtitle">Your Google services are now connected and ready to use.</p>
+              
+              <div class="services">
+                <div class="service">
+                  <div class="service-name">
+                    <span>📊</span>
+                    <span>Google Analytics</span>
+                  </div>
+                  <div class="connected">✓ Connected</div>
+                </div>
+                <div class="service">
+                  <div class="service-name">
+                    <span>💰</span>
+                    <span>Google AdSense</span>
+                  </div>
+                  <div class="connected">✓ Connected</div>
+                </div>
+                <div class="service">
+                  <div class="service-name">
+                    <span>🔍</span>
+                    <span>Search Console</span>
+                  </div>
+                  <div class="connected">✓ Connected</div>
+                </div>
+              </div>
+              
+              <p class="closing-message">This window will close automatically...</p>
+            </div>
+            
+            <script>
+              // Send success message to parent window
+              if (window.opener) {
+                window.opener.postMessage({
+                  type: 'oauth_success',
+                  credentials: ${JSON.stringify(result)}
+                }, '*');
+              }
+              
+              // Close window after delay
+              setTimeout(() => {
+                window.close();
+              }, 3000);
+            </script>
+          </body>
+          </html>
+        `;
+        
+        return new Response(htmlResponse, {
+          headers: { ...corsHeaders, 'Content-Type': 'text/html' },
+        });
+        
+      } catch (error) {
+        console.error('OAuth exchange error:', error);
+        
+        // WordPress Site Kit style error page
+        const errorHtml = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Connection Failed</title>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+              body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                margin: 0;
+                padding: 20px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+              }
+              .container {
+                background: white;
+                border-radius: 12px;
+                padding: 40px;
+                text-align: center;
+                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+                max-width: 400px;
+                width: 100%;
+              }
+              .error-icon {
+                width: 64px;
+                height: 64px;
+                background: #ef4444;
+                border-radius: 50%;
+                margin: 0 auto 20px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                font-size: 24px;
+              }
+              .title {
+                color: #1f2937;
+                font-size: 24px;
+                font-weight: 600;
+                margin-bottom: 12px;
+              }
+              .subtitle {
+                color: #6b7280;
+                margin-bottom: 24px;
+                line-height: 1.5;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="error-icon">✗</div>
+              <h1 class="title">Connection Failed</h1>
+              <p class="subtitle">${error.message || 'An error occurred during authentication'}</p>
+              <p class="subtitle">Please close this window and try again.</p>
+            </div>
+            
+            <script>
+              if (window.opener) {
+                window.opener.postMessage({
+                  type: 'oauth_error',
+                  error: '${error.message || 'Authentication failed'}'
+                }, '*');
+              }
+              
+              setTimeout(() => {
+                window.close();
+              }, 5000);
+            </script>
+          </body>
+          </html>
+        `;
+        
+        return new Response(errorHtml, {
+          headers: { ...corsHeaders, 'Content-Type': 'text/html' },
+        });
+      }
     }
     
     // Handle API calls (POST requests)
@@ -77,7 +286,7 @@ async function exchangeCodeForTokens(supabase: any, code: string) {
   try {
     // Get OAuth configuration from database
     const { data: config, error: configError } = await supabase
-      .from('google_site_kit_config')
+      .from('google_site_kit')
       .select('*')
       .limit(1)
       .single();
@@ -93,7 +302,7 @@ async function exchangeCodeForTokens(supabase: any, code: string) {
     // Exchange authorization code for tokens
     const tokenRequest = {
       client_id: config.oauth_client_id,
-      client_secret: Deno.env.get('GOOGLE_CLIENT_SECRET'),
+      client_secret: config.oauth_client_secret,
       code: code,
       grant_type: 'authorization_code',
       redirect_uri: 'https://rowcloxlszwnowlggqon.supabase.co/functions/v1/google-oauth'
@@ -170,19 +379,19 @@ async function refreshTokens(supabase: any) {
   try {
     // Get current tokens from database
     const { data: config, error: configError } = await supabase
-      .from('google_site_kit_config')
+      .from('google_site_kit')
       .select('*')
       .limit(1)
       .single();
 
-    if (configError || !config || !config.refresh_token) {
+    if (configError || !config || !config.oauth_refresh_token) {
       throw new Error('No refresh token available');
     }
 
     const refreshRequest = {
       client_id: config.oauth_client_id,
-      client_secret: Deno.env.get('GOOGLE_CLIENT_SECRET'),
-      refresh_token: config.refresh_token,
+      client_secret: config.oauth_client_secret,
+      refresh_token: config.oauth_refresh_token,
       grant_type: 'refresh_token'
     };
 
@@ -204,11 +413,11 @@ async function refreshTokens(supabase: any) {
 
     // Update tokens in database
     const { error: updateError } = await supabase
-      .from('google_site_kit_config')
+      .from('google_site_kit')
       .update({
-        access_token: tokens.access_token,
-        token_expires_at: expiresAt.toISOString(),
-        last_sync_at: new Date().toISOString(),
+        oauth_access_token: tokens.access_token,
+        oauth_expires_at: expiresAt.toISOString(),
+        updated_at: new Date().toISOString(),
         error_message: null
       })
       .eq('id', config.id);

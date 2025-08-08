@@ -18,6 +18,12 @@ dist-ssr
 .env.development
 .env.test
 .env.production
+
+# Google OAuth secrets and credentials
+client_secret_*.json
+google-credentials.json
+google-service-account-key.json
+*-credentials.json
 .env.*.local
 
 # API Keys and OAuth secrets
