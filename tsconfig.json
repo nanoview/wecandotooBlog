@@ -14,6 +14,17 @@
     "skipLibCheck": true,
     "allowJs": true,
     "noUnusedLocals": false,
-    "strictNullChecks": false
-  }
+    "strictNullChecks": false,
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "moduleResolution": "node",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "strict": true,
+    "types": ["https://deno.land/x/types/deno.d.ts"]
+  },
+  "exclude": [
+    "node_modules",
+    "supabase/functions/**/*"
+  ]
 }

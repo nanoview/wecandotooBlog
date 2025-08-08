@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -151,7 +151,7 @@ serve(async (req) => {
               if (window.opener) {
                 window.opener.postMessage({
                   type: 'oauth_success',
-                  credentials: ${JSON.stringify(result)}
+                  credentials: {}
                 }, '*');
               }
               
@@ -228,7 +228,7 @@ serve(async (req) => {
             <div class="container">
               <div class="error-icon">✗</div>
               <h1 class="title">Connection Failed</h1>
-              <p class="subtitle">${error.message || 'An error occurred during authentication'}</p>
+              <p class="subtitle">${(error as Error).message || 'An error occurred during authentication'}</p>
               <p class="subtitle">Please close this window and try again.</p>
             </div>
             
@@ -236,7 +236,7 @@ serve(async (req) => {
               if (window.opener) {
                 window.opener.postMessage({
                   type: 'oauth_error',
-                  error: '${error.message || 'Authentication failed'}'
+                  error: '${(error as Error).message || 'Authentication failed'}'
                 }, '*');
               }
               
@@ -272,7 +272,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message 
+        error: (error as Error).message 
       }),
       {
         status: 500,
@@ -284,9 +284,9 @@ serve(async (req) => {
 
 async function exchangeCodeForTokens(supabase: any, code: string) {
   try {
-    // Get OAuth configuration from database
+    // Get OAuth configuration from database - FIXED: Use consistent table name
     const { data: config, error: configError } = await supabase
-      .from('google_site_kit')
+      .from('google_site_kit_config')
       .select('*')
       .limit(1)
       .single();
@@ -330,7 +330,7 @@ async function exchangeCodeForTokens(supabase: any, code: string) {
     // Calculate expiry time
     const expiresAt = new Date(Date.now() + (tokens.expires_in * 1000));
 
-    // Store tokens in database
+    // Store tokens in database - FIXED: Use consistent field names
     const { error: updateError } = await supabase
       .from('google_site_kit_config')
       .update({
@@ -350,48 +350,35 @@ async function exchangeCodeForTokens(supabase: any, code: string) {
 
     console.log('Tokens stored successfully');
 
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: 'OAuth tokens exchanged and stored successfully' 
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+    // FIXED: Return simple object instead of Response
+    return { 
+      success: true, 
+      message: 'OAuth tokens exchanged and stored successfully' 
+    };
 
   } catch (error) {
     console.error('Token exchange error:', error);
-    return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error.message 
-      }),
-      {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+    throw error; // Re-throw to be caught by main handler
   }
 }
 
 async function refreshTokens(supabase: any) {
   try {
-    // Get current tokens from database
+    // Get current tokens from database - FIXED: Use consistent table name
     const { data: config, error: configError } = await supabase
-      .from('google_site_kit')
+      .from('google_site_kit_config')
       .select('*')
       .limit(1)
       .single();
 
-    if (configError || !config || !config.oauth_refresh_token) {
+    if (configError || !config || !config.refresh_token) {
       throw new Error('No refresh token available');
     }
 
     const refreshRequest = {
       client_id: config.oauth_client_id,
       client_secret: config.oauth_client_secret,
-      refresh_token: config.oauth_refresh_token,
+      refresh_token: config.refresh_token,
       grant_type: 'refresh_token'
     };
 
@@ -411,13 +398,13 @@ async function refreshTokens(supabase: any) {
     const tokens = await refreshResponse.json();
     const expiresAt = new Date(Date.now() + (tokens.expires_in * 1000));
 
-    // Update tokens in database
+    // Update tokens in database - FIXED: Use consistent field names
     const { error: updateError } = await supabase
-      .from('google_site_kit')
+      .from('google_site_kit_config')
       .update({
-        oauth_access_token: tokens.access_token,
-        oauth_expires_at: expiresAt.toISOString(),
-        updated_at: new Date().toISOString(),
+        access_token: tokens.access_token,
+        token_expires_at: expiresAt.toISOString(),
+        last_sync_at: new Date().toISOString(),
         error_message: null
       })
       .eq('id', config.id);
@@ -441,7 +428,7 @@ async function refreshTokens(supabase: any) {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message 
+        error: (error as Error).message 
       }),
       {
         status: 400,
@@ -487,11 +474,11 @@ async function checkConnectionStatus(supabase: any) {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message 
+        error: (error as Error).message 
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
   }
