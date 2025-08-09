@@ -9,7 +9,7 @@ import Header from '@/components/navigation/Header';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { SupabaseGoogleDashboard } from '@/components/SupabaseGoogleDashboard';
+import SupabaseGoogleDashboard from '@/components/SupabaseGoogleDashboard';
 import GoogleDataDashboard from '@/components/GoogleDataDashboard';
 import { BlogPost } from '@/types/blog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';

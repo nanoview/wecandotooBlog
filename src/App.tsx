@@ -20,6 +20,7 @@ import Edit from "./pages/Edit";
 import OAuthCallback from "./pages/OAuthCallback";
 import GoogleServicesSetup from "./pages/GoogleServicesSetup";
 import { EditorPanel } from "./pages/EditorPanel";
+import ImageUploadDemo from "./pages/ImageUploadDemo";
 import NotFound from "./pages/NotFound";
 import ConfirmSubscription from "./pages/ConfirmSubscription";
 
@@ -52,6 +53,7 @@ const App = () => (
             <Route path="/editor" element={<BlogEditor />} />
             <Route path="/write" element={<Write />} />
             <Route path="/editor-panel" element={<EditorPanel />} />
+            <Route path="/image-demo" element={<ImageUploadDemo />} />
             <Route path="/confirm-subscription" element={<ConfirmSubscription />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

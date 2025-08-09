@@ -1,4 +1,4 @@
-import { SupabaseGoogleDashboard } from '@/components/SupabaseGoogleDashboard';
+import SupabaseGoogleDashboard from '@/components/SupabaseGoogleDashboard';
 
 export default function DashboardTab() {
   return (
