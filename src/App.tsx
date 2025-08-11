@@ -21,6 +21,7 @@ import OAuthCallback from "./pages/OAuthCallback";
 import GoogleServicesSetup from "./pages/GoogleServicesSetup";
 import { EditorPanel } from "./pages/EditorPanel";
 import ImageUploadDemo from "./pages/ImageUploadDemo";
+import SocialSharingDemo from "./pages/SocialSharingDemo";
 import NotFound from "./pages/NotFound";
 import ConfirmSubscription from "./pages/ConfirmSubscription";
 
@@ -54,6 +55,7 @@ const App = () => (
             <Route path="/write" element={<Write />} />
             <Route path="/editor-panel" element={<EditorPanel />} />
             <Route path="/image-demo" element={<ImageUploadDemo />} />
+            <Route path="/social-demo" element={<SocialSharingDemo />} />
             <Route path="/confirm-subscription" element={<ConfirmSubscription />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -9,6 +9,8 @@ import { Comments } from '@/components/Comments';
 import BlockEditor, { Block } from '@/components/BlockEditor';
 import GoogleAd from '@/components/GoogleAd';
 import BackToTopButton from '@/components/BackToTopButton';
+import SocialSharing from '@/components/SocialSharing';
+import SocialActionBar from '@/components/SocialActionBar';
 import { fetchBlogPost, fetchBlogPostBySlug, fetchBlogPostsByCategory } from '@/services/blogService';
 import { BlogPost as BlogPostType } from '@/types/blog';
 import { useToast } from '@/hooks/use-toast';
@@ -268,18 +270,13 @@ const BlogPostDetail = () => {
                   </Button>
                 </Link>
               )}
-              <Button variant="outline" size="sm">
-                <Heart className="w-4 h-4 mr-1" />
-                Like
-              </Button>
-              <Button variant="outline" size="sm">
-                <Bookmark className="w-4 h-4 mr-1" />
-                Save
-              </Button>
-              <Button variant="outline" size="sm">
-                <Share2 className="w-4 h-4 mr-1" />
-                Share
-              </Button>
+              
+              {/* Social Sharing Button */}
+              <SocialSharing 
+                post={post} 
+                variant="compact" 
+                showLabel={true}
+              />
             </div>
           </div>
 
@@ -418,6 +415,15 @@ const BlogPostDetail = () => {
           )}
         </div>
 
+        {/* Social Sharing Section */}
+        <div className="mt-12">
+          <SocialSharing 
+            post={post} 
+            variant="full" 
+            showLabel={true}
+          />
+        </div>
+
         {/* Ad - After content, before author bio */}
         <div className="my-8">
           <GoogleAd slot="4567890123" layout="rectangle" className="flex justify-center" />
@@ -482,6 +488,13 @@ const BlogPostDetail = () => {
           </div>
         </div>
       </section>
+
+      {/* Social Action Bar - Sticky */}
+      <SocialActionBar 
+        post={post} 
+        position="floating" 
+        showStats={true}
+      />
 
       <BackToTopButton />
     </div>

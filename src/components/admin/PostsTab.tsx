@@ -1,9 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { FileText, Edit, Trash2, Plus, Eye } from 'lucide-react';
+import { FileText, Edit, Trash2, Plus, Eye, Share2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useNavigate } from 'react-router-dom';
+import SocialSharing from '@/components/SocialSharing';
 
 export default function PostsTab({ blogPosts, togglePostStatus, deleteBlogPost }) {
   const navigate = useNavigate();
@@ -71,6 +72,16 @@ export default function PostsTab({ blogPosts, togglePostStatus, deleteBlogPost }
                     <Edit className="w-4 h-4" />
                     Edit
                   </Button>
+                  
+                  {/* Social Sharing - Only for published posts */}
+                  {post.status === 'published' && (
+                    <SocialSharing
+                      post={post}
+                      variant="compact"
+                      showLabel={false}
+                    />
+                  )}
+                  
                   <Button
                     size="sm"
                     variant={post.status === 'published' ? 'secondary' : 'default'}
