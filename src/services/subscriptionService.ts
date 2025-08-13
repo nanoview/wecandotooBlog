@@ -11,71 +11,64 @@ export interface Subscriber {
   updated_at: string;
 }
 
-// Subscribe to newsletter
+// Subscribe to newsletter using edge function
 export const subscribeToNewsletter = async (email: string) => {
   try {
     console.log('Attempting to subscribe:', email);
+    console.log('Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
+    console.log('Supabase client configured:', !!supabase);
     
-    // Insert without confirmation_token - let the trigger generate it
-    const { data, error } = await supabase
-      .from('subscribers')
-      .insert({
+    // Call the newsletter-subscription edge function
+    const { data, error } = await supabase.functions.invoke('newsletter-subscription', {
+      body: {
         email: email.toLowerCase().trim(),
-        status: 'pending'
-      })
-      .select()
-      .single();
+        action: 'subscribe'
+      }
+    });
+
+    console.log('Raw response data:', data);
+    console.log('Raw response error:', error);
 
     if (error) {
-      console.error('Supabase error:', error);
-      
-      if (error.code === '23505') {
-        throw new Error('This email is already subscribed');
-      }
-      if (error.message.includes('relation "subscribers" does not exist')) {
-        throw new Error('Database table not found. Please run the migration first.');
-      }
-      if (error.message.includes('permission denied')) {
-        throw new Error('Permission denied. Please check database policies.');
-      }
-      throw new Error(error.message || 'Failed to subscribe');
+      console.error('Supabase function error:', error);
+      throw new Error(error.message || 'Failed to subscribe to newsletter');
     }
 
-    console.log('Subscription successful:', data);
-    
-    // Send confirmation email if we have the token
-    if (data.confirmation_token) {
-      await sendConfirmationEmail(data.email, data.confirmation_token);
+    if (!data.success) {
+      throw new Error(data.error || 'Subscription failed');
     }
-    
+
+    console.log('Newsletter subscription successful:', data);
     return data;
-
   } catch (error: any) {
-    console.error('Error in subscribeToNewsletter:', error);
-    throw error;
+    console.error('Newsletter subscription error:', error);
+    throw new Error(error.message || 'Failed to subscribe to newsletter');
   }
 };
 
-// Confirm subscription
+// Confirm subscription using edge function
 export const confirmSubscription = async (token: string) => {
   try {
     if (!token || token.length < 16) {
       throw new Error('Invalid confirmation token');
     }
 
-    const { data, error } = await supabase
-      .from('subscribers')
-      .update({
-        status: 'confirmed',
-        confirmed_at: new Date().toISOString()
-      })
-      .eq('confirmation_token', token)
-      .eq('status', 'pending')
-      .select()
-      .single();
+    // Call the newsletter-subscription edge function
+    const { data, error } = await supabase.functions.invoke('newsletter-subscription', {
+      body: {
+        email: '', // Not needed for confirmation
+        action: 'confirm',
+        token: token
+      }
+    });
 
-    if (error || !data) {
-      throw new Error('Invalid or expired confirmation link');
+    if (error) {
+      console.error('Supabase function error:', error);
+      throw new Error(error.message || 'Failed to confirm subscription');
+    }
+
+    if (!data.success) {
+      throw new Error(data.message || 'Invalid or expired confirmation link');
     }
 
     return data;

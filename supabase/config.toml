@@ -9,8 +9,16 @@ max_rows = 1000
 
 [auth]
 enabled = true
-site_url = "http://localhost:3000"
-additional_redirect_urls = ["https://localhost:3000"]
+site_url = "https://wecandotoo.com"
+additional_redirect_urls = [
+  "https://wecandotoo.com", 
+  "https://wecandotoo.com/auth/confirm",
+  "https://wecandotoo.com/auth/reset-password", 
+  "https://wecandotoo.com/confirm-subscription",
+  "http://localhost:8080",
+  "http://localhost:8080/auth/confirm",
+  "http://localhost:8080/confirm-subscription"
+]
 jwt_expiry = 3600
 enable_signup = true
 enable_anonymous_sign_ins = false
@@ -36,10 +44,25 @@ verify_jwt = false
 [functions.send-confirmation-email]
 verify_jwt = false
 
+[functions.auth-email-template]
+verify_jwt = false
+
+[functions.newsletter-subscription]
+verify_jwt = false
+
 [storage]
 enabled = true
 file_size_limit = "50MiB"
 
 [auth.email]
 enable_signup = true
-enable_confirmations = false
+enable_confirmations = true
+double_confirm_changes = true
+
+# Custom SMTP configuration (you'll need to set these in your Supabase dashboard)
+# smtp_admin_email = "hello@wecandotoo.com"
+# smtp_host = "your-smtp-host"
+# smtp_port = 587
+# smtp_user = "hello@wecandotoo.com"
+# smtp_pass = "your-smtp-password"
+# smtp_sender_name = "WeCanDoToo"

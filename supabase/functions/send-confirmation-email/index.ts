@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
@@ -31,7 +31,7 @@ const handler = async (req: Request): Promise<Response> => {
     const confirmationUrl = `${siteUrl}/confirm-subscription?token=${confirmationToken}`;
     
     const emailResponse = await resend.emails.send({
-      from: "WeCanDoToo <onboarding@resend.dev>",
+      from: "WeCanDoToo <hello@wecandotoo.com>",
       to: [email],
       subject: "Confirm your subscription to WeCanDoToo",
       html: `

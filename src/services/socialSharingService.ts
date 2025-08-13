@@ -165,36 +165,23 @@ export const generateShareData = (
 };
 
 /**
- * Open share dialog for specific platform
+ * Share to a specific social platform
  */
-export const shareToSocial = (platform: string, shareData: ShareData): boolean => {
+export const shareToSocial = (platform: string, data: ShareData): boolean => {
   const socialPlatform = socialPlatforms[platform];
   if (!socialPlatform) {
-    console.error(`Platform ${platform} not supported`);
+    console.error(`Unknown social platform: ${platform}`);
     return false;
   }
 
-  const shareUrl = socialPlatform.shareUrl(shareData);
-  
-  // For email, use window.location
-  if (platform === 'email') {
-    window.location.href = shareUrl;
+  try {
+    const shareUrl = socialPlatform.shareUrl(data);
+    window.open(shareUrl, '_blank', 'width=600,height=400');
     return true;
+  } catch (error) {
+    console.error(`Error sharing to ${platform}:`, error);
+    return false;
   }
-  
-  // For other platforms, open in new window
-  const width = 600;
-  const height = 600;
-  const left = (window.innerWidth - width) / 2;
-  const top = (window.innerHeight - height) / 2;
-  
-  const popup = window.open(
-    shareUrl,
-    `share-${platform}`,
-    `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
-  );
-  
-  return popup !== null;
 };
 
 /**
@@ -208,51 +195,43 @@ export const copyShareLink = async (url: string): Promise<boolean> => {
     // Fallback for older browsers
     const textArea = document.createElement('textarea');
     textArea.value = url;
-    textArea.style.position = 'fixed';
+    textArea.style.position = 'absolute';
     textArea.style.left = '-999999px';
-    textArea.style.top = '-999999px';
     document.body.appendChild(textArea);
-    textArea.focus();
     textArea.select();
-    
     try {
       document.execCommand('copy');
       document.body.removeChild(textArea);
       return true;
-    } catch (err) {
+    } catch (fallbackError) {
       document.body.removeChild(textArea);
+      console.error('Could not copy text: ', fallbackError);
       return false;
     }
   }
 };
 
 /**
- * Check if Web Share API is available
+ * Check if Web Share API is supported
  */
 export const isWebShareSupported = (): boolean => {
-  return 'share' in navigator && 'canShare' in navigator;
+  return typeof navigator !== 'undefined' && 'share' in navigator;
 };
 
 /**
- * Use native Web Share API if available
+ * Use native sharing if available
  */
-export const nativeShare = async (shareData: ShareData): Promise<boolean> => {
+export const nativeShare = async (data: ShareData): Promise<boolean> => {
   if (!isWebShareSupported()) {
     return false;
   }
 
   try {
-    const data = {
-      title: shareData.title,
-      text: shareData.description,
-      url: shareData.url
-    };
-
-    if (navigator.canShare && !navigator.canShare(data)) {
-      return false;
-    }
-
-    await navigator.share(data);
+    await navigator.share({
+      title: data.title,
+      text: data.description,
+      url: data.url,
+    });
     return true;
   } catch (error) {
     // User cancelled or error occurred
@@ -261,36 +240,21 @@ export const nativeShare = async (shareData: ShareData): Promise<boolean> => {
 };
 
 /**
- * Track sharing analytics (placeholder for future implementation)
+ * Track sharing events (for analytics)
  */
 export const trackShare = (platform: string, postId: string): void => {
-  // This could be enhanced to track sharing analytics
-  console.log(`Shared post ${postId} to ${platform}`);
+  // Implement your analytics tracking here
+  console.log(`Shared post ${postId} on ${platform}`);
   
-  // Example: Send to analytics service
-  // gtag('event', 'share', {
-  //   method: platform,
-  //   content_type: 'blog_post',
-  //   content_id: postId
-  // });
-};
-
-/**
- * Generate Open Graph meta tags for better social sharing
- */
-export const generateOGTags = (shareData: ShareData): string => {
-  return `
-    <meta property="og:title" content="${shareData.title}" />
-    <meta property="og:description" content="${shareData.description}" />
-    <meta property="og:url" content="${shareData.url}" />
-    <meta property="og:type" content="article" />
-    ${shareData.imageUrl ? `<meta property="og:image" content="${shareData.imageUrl}" />` : ''}
-    <meta property="og:site_name" content="Stellar Content Stream" />
-    
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="${shareData.title}" />
-    <meta name="twitter:description" content="${shareData.description}" />
-    ${shareData.imageUrl ? `<meta name="twitter:image" content="${shareData.imageUrl}" />` : ''}
-    ${shareData.via ? `<meta name="twitter:site" content="@${shareData.via}" />` : ''}
-  `;
+  // Example: Google Analytics
+  if (typeof window !== 'undefined' && 'gtag' in window) {
+    (window as any).gtag('event', 'share', {
+      method: platform,
+      content_type: 'article',
+      item_id: postId,
+    });
+  }
+  
+  // Example: Custom analytics
+  // analytics.track('Post Shared', { platform, postId });
 };

@@ -19,7 +19,10 @@ import {
   ChevronDown,
   Video,
   Minus,
-  CheckSquare
+  CheckSquare,
+  Table,
+  ImagePlus,
+  Grid3X3
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -29,7 +32,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 export interface Block {
   id: string;
-  type: 'text' | 'heading' | 'image' | 'list' | 'quote' | 'code' | 'divider' | 'video' | 'checklist';
+  type: 'text' | 'heading' | 'image' | 'list' | 'quote' | 'code' | 'divider' | 'video' | 'checklist' | 'table' | 'gallery';
   content: any;
   style?: any;
 }
@@ -105,6 +108,14 @@ const BlockEditor: React.FC<BlockEditorProps> = ({ blocks, onChange, readOnly = 
         return { url: '', caption: '' };
       case 'checklist':
         return { items: [{ text: '', checked: false }] };
+      case 'table':
+        return { 
+          headers: ['Column 1', 'Column 2'], 
+          rows: [['', ''], ['', '']], 
+          hasHeader: true 
+        };
+      case 'gallery':
+        return { images: [], layout: 'grid', columns: 3 };
       case 'divider':
         return {};
       default:
@@ -221,12 +232,44 @@ const BlockComponent: React.FC<BlockComponentProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
+    const files = Array.from(e.target.files || []);
+    
+    if (files.length === 0) return;
+
+    if (block.type === 'gallery') {
+      // Handle multiple images for gallery
+      files.forEach(file => {
+        const url = URL.createObjectURL(file);
+        const newImage = {
+          id: `${Date.now()}_${Math.random()}`,
+          url,
+          caption: '',
+          alt: file.name.replace(/\.[^/.]+$/, '') // Remove extension for alt text
+        };
+        
+        onUpdate({
+          content: {
+            ...block.content,
+            images: [...(block.content.images || []), newImage]
+          }
+        });
+      });
+    } else if (block.type === 'image') {
+      // Handle single image
+      const file = files[0];
       const url = URL.createObjectURL(file);
       onUpdate({
-        content: { ...block.content, url }
+        content: { 
+          ...block.content, 
+          url,
+          alt: block.content.alt || file.name.replace(/\.[^/.]+$/, '')
+        }
       });
+    }
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
@@ -315,6 +358,25 @@ const BlockComponent: React.FC<BlockComponentProps> = ({
           />
         );
       
+      case 'table':
+        return (
+          <TableBlock
+            content={block.content}
+            readOnly={readOnly}
+            onUpdate={(content) => onUpdate({ content })}
+          />
+        );
+      
+      case 'gallery':
+        return (
+          <GalleryBlock
+            content={block.content}
+            readOnly={readOnly}
+            onUpdate={(content) => onUpdate({ content })}
+            onUpload={() => fileInputRef.current?.click()}
+          />
+        );
+      
       default:
         return <div>Unknown block type</div>;
     }
@@ -374,6 +436,7 @@ const BlockComponent: React.FC<BlockComponentProps> = ({
         ref={fileInputRef}
         type="file"
         accept="image/*"
+        multiple={block.type === 'gallery'}
         onChange={handleImageUpload}
         className="hidden"
       />
@@ -399,24 +462,43 @@ const TextBlock: React.FC<{
           onStyleUpdate={onStyleUpdate}
         />
       )}
-      <Textarea
-        value={content.text}
-        onChange={(e) => onUpdate({ ...content, text: e.target.value })}
-        placeholder="Start typing..."
-        readOnly={readOnly}
-        className={`border-none shadow-none resize-none focus:ring-0 ${
-          style?.fontSize === 'lg' ? 'text-lg' : style?.fontSize === 'sm' ? 'text-sm' : 'text-base'
-        } ${
-          style?.fontWeight === 'bold' ? 'font-bold' : 'font-normal'
-        } ${
-          style?.textAlign === 'center' ? 'text-center' : 
-          style?.textAlign === 'right' ? 'text-right' : 'text-left'
-        }`}
-        style={{
-          color: style?.color,
-          backgroundColor: style?.backgroundColor
-        }}
-      />
+      {readOnly ? (
+        <div
+          className={`whitespace-pre-wrap ${
+            style?.fontSize === 'lg' ? 'text-lg' : style?.fontSize === 'sm' ? 'text-sm' : 'text-base'
+          } ${
+            style?.fontWeight === 'bold' ? 'font-bold' : 'font-normal'
+          } ${
+            style?.textAlign === 'center' ? 'text-center' : 
+            style?.textAlign === 'right' ? 'text-right' : 'text-left'
+          }`}
+          style={{
+            color: style?.color,
+            backgroundColor: style?.backgroundColor
+          }}
+        >
+          {content.text}
+        </div>
+      ) : (
+        <Textarea
+          value={content.text}
+          onChange={(e) => onUpdate({ ...content, text: e.target.value })}
+          placeholder="Start typing... (Press Enter for line breaks)"
+          readOnly={readOnly}
+          className={`border-none shadow-none resize-none focus:ring-0 min-h-[100px] ${
+            style?.fontSize === 'lg' ? 'text-lg' : style?.fontSize === 'sm' ? 'text-sm' : 'text-base'
+          } ${
+            style?.fontWeight === 'bold' ? 'font-bold' : 'font-normal'
+          } ${
+            style?.textAlign === 'center' ? 'text-center' : 
+            style?.textAlign === 'right' ? 'text-right' : 'text-left'
+          }`}
+          style={{
+            color: style?.color,
+            backgroundColor: style?.backgroundColor
+          }}
+        />
+      )}
     </div>
   );
 };
@@ -812,6 +894,278 @@ const ChecklistBlock: React.FC<{
   );
 };
 
+const TableBlock: React.FC<{
+  content: any;
+  readOnly: boolean;
+  onUpdate: (content: any) => void;
+}> = ({ content, readOnly, onUpdate }) => {
+  const addRow = () => {
+    const newRow = new Array(content.headers.length).fill('');
+    onUpdate({
+      ...content,
+      rows: [...content.rows, newRow]
+    });
+  };
+
+  const addColumn = () => {
+    onUpdate({
+      ...content,
+      headers: [...content.headers, `Column ${content.headers.length + 1}`],
+      rows: content.rows.map((row: string[]) => [...row, ''])
+    });
+  };
+
+  const removeRow = (rowIndex: number) => {
+    if (content.rows.length > 1) {
+      onUpdate({
+        ...content,
+        rows: content.rows.filter((_: any, index: number) => index !== rowIndex)
+      });
+    }
+  };
+
+  const removeColumn = (colIndex: number) => {
+    if (content.headers.length > 1) {
+      onUpdate({
+        ...content,
+        headers: content.headers.filter((_: any, index: number) => index !== colIndex),
+        rows: content.rows.map((row: string[]) => 
+          row.filter((_: any, index: number) => index !== colIndex)
+        )
+      });
+    }
+  };
+
+  const updateHeader = (index: number, value: string) => {
+    const newHeaders = [...content.headers];
+    newHeaders[index] = value;
+    onUpdate({ ...content, headers: newHeaders });
+  };
+
+  const updateCell = (rowIndex: number, colIndex: number, value: string) => {
+    const newRows = content.rows.map((row: string[], rIndex: number) => 
+      rIndex === rowIndex 
+        ? row.map((cell: string, cIndex: number) => 
+            cIndex === colIndex ? value : cell
+          )
+        : row
+    );
+    onUpdate({ ...content, rows: newRows });
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse border border-gray-300">
+          {content.hasHeader && (
+            <thead>
+              <tr className="bg-gray-50">
+                {content.headers.map((header: string, colIndex: number) => (
+                  <th key={colIndex} className="border border-gray-300 p-2">
+                    {readOnly ? (
+                      <span className="font-semibold">{header}</span>
+                    ) : (
+                      <div className="flex items-center gap-1">
+                        <Input
+                          value={header}
+                          onChange={(e) => updateHeader(colIndex, e.target.value)}
+                          className="font-semibold border-none shadow-none p-0 text-center"
+                          placeholder={`Column ${colIndex + 1}`}
+                        />
+                        {content.headers.length > 1 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeColumn(colIndex)}
+                            className="w-6 h-6 p-0"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+          )}
+          <tbody>
+            {content.rows.map((row: string[], rowIndex: number) => (
+              <tr key={rowIndex}>
+                {row.map((cell: string, colIndex: number) => (
+                  <td key={colIndex} className="border border-gray-300 p-2">
+                    {readOnly ? (
+                      <span>{cell}</span>
+                    ) : (
+                      <div className="flex items-center gap-1">
+                        <Textarea
+                          value={cell}
+                          onChange={(e) => updateCell(rowIndex, colIndex, e.target.value)}
+                          className="min-h-[2rem] border-none shadow-none p-0 resize-none"
+                          placeholder="Enter text..."
+                        />
+                        {rowIndex === 0 && content.rows.length > 1 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeRow(rowIndex)}
+                            className="w-6 h-6 p-0"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      
+      {!readOnly && (
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={addRow}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Row
+          </Button>
+          <Button variant="outline" size="sm" onClick={addColumn}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Column
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const GalleryBlock: React.FC<{
+  content: any;
+  readOnly: boolean;
+  onUpdate: (content: any) => void;
+  onUpload: () => void;
+}> = ({ content, readOnly, onUpdate, onUpload }) => {
+  const addImage = (imageData: { url: string; caption: string; alt: string }) => {
+    onUpdate({
+      ...content,
+      images: [...content.images, { ...imageData, id: Date.now().toString() }]
+    });
+  };
+
+  const updateImage = (id: string, updates: Partial<any>) => {
+    onUpdate({
+      ...content,
+      images: content.images.map((img: any) => 
+        img.id === id ? { ...img, ...updates } : img
+      )
+    });
+  };
+
+  const removeImage = (id: string) => {
+    onUpdate({
+      ...content,
+      images: content.images.filter((img: any) => img.id !== id)
+    });
+  };
+
+  const gridCols = {
+    1: 'grid-cols-1',
+    2: 'grid-cols-2',
+    3: 'grid-cols-3',
+    4: 'grid-cols-4'
+  };
+
+  return (
+    <div className="space-y-4">
+      {!readOnly && (
+        <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
+          <Button
+            variant="outline"
+            onClick={onUpload}
+            className="flex items-center gap-2"
+          >
+            <ImagePlus className="w-4 h-4" />
+            Add Images
+          </Button>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600">Columns:</span>
+            <Select
+              value={content.columns.toString()}
+              onValueChange={(value) => onUpdate({ ...content, columns: parseInt(value) })}
+            >
+              <SelectTrigger className="w-20">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">1</SelectItem>
+                <SelectItem value="2">2</SelectItem>
+                <SelectItem value="3">3</SelectItem>
+                <SelectItem value="4">4</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      )}
+
+      {content.images.length > 0 ? (
+        <div className={`grid gap-4 ${gridCols[content.columns as keyof typeof gridCols] || 'grid-cols-3'}`}>
+          {content.images.map((image: any) => (
+            <div key={image.id} className="space-y-2">
+              <div className="relative group">
+                <img
+                  src={image.url}
+                  alt={image.alt}
+                  className="w-full h-48 object-cover rounded-lg"
+                />
+                {!readOnly && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => removeImage(image.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
+              {!readOnly && (
+                <div className="space-y-1">
+                  <Input
+                    value={image.caption}
+                    onChange={(e) => updateImage(image.id, { caption: e.target.value })}
+                    placeholder="Caption..."
+                    className="text-sm"
+                  />
+                  <Input
+                    value={image.alt}
+                    onChange={(e) => updateImage(image.id, { alt: e.target.value })}
+                    placeholder="Alt text..."
+                    className="text-sm"
+                  />
+                </div>
+              )}
+              {image.caption && (
+                <p className="text-sm text-gray-600 text-center italic">{image.caption}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        !readOnly && (
+          <div 
+            className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-400 transition-colors"
+            onClick={onUpload}
+          >
+            <ImagePlus className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600">Click to add images to gallery</p>
+          </div>
+        )
+      )}
+    </div>
+  );
+};
+
 const TextFormattingToolbar: React.FC<{
   style: any;
   onStyleUpdate: (style: any) => void;
@@ -899,7 +1253,9 @@ const AddBlockMenu: React.FC<{
     { type: 'text' as const, icon: Type, label: 'Text', description: 'Simple text block' },
     { type: 'heading' as const, icon: Hash, label: 'Heading', description: 'Section heading' },
     { type: 'image' as const, icon: Image, label: 'Image', description: 'Upload an image' },
+    { type: 'gallery' as const, icon: ImagePlus, label: 'Gallery', description: 'Multiple images in grid' },
     { type: 'list' as const, icon: List, label: 'List', description: 'Bullet or numbered list' },
+    { type: 'table' as const, icon: Table, label: 'Table', description: 'Data table with rows and columns' },
     { type: 'quote' as const, icon: Quote, label: 'Quote', description: 'Highlighted quote' },
     { type: 'code' as const, icon: Code, label: 'Code', description: 'Code snippet' },
     { type: 'video' as const, icon: Video, label: 'Video', description: 'Embed video' },

@@ -175,3 +175,5 @@ const ReadingProgress: React.FC = () => {
 };
 
 export default SocialActionBar;
+
+// SocialActionBar removed. Use SocialSharing with only icons instead.

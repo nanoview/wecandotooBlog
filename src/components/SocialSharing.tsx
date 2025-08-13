@@ -34,13 +34,15 @@ interface SocialSharingProps {
   variant?: 'compact' | 'full' | 'floating';
   showLabel?: boolean;
   className?: string;
+  onlyIcons?: boolean;
 }
 
 export const SocialSharing: React.FC<SocialSharingProps> = ({
   post,
   variant = 'compact',
   showLabel = true,
-  className = ''
+  className = '',
+  onlyIcons = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -67,7 +69,6 @@ export const SocialSharing: React.FC<SocialSharingProps> = ({
     }
     setIsOpen(false);
   };
-
   const handleCopyLink = async () => {
     const success = await copyShareLink(shareData.url);
     if (success) {
@@ -95,6 +96,28 @@ export const SocialSharing: React.FC<SocialSharingProps> = ({
       trackShare('native', post.id);
     }
   };
+
+  // Only icons variant
+  if (onlyIcons) {
+    return (
+      <div className={`flex gap-2 ${className}`}>
+        {Object.entries(socialPlatforms).map(([key, platform]) => (
+          <Button 
+            key={key} 
+            variant="ghost"
+            size="icon"
+            style={{ backgroundColor: platform.color, borderRadius: '12px', width: '48px', height: '48px', padding: 0 }}
+            onClick={() => handlePlatformShare(key)}
+            className="shadow hover:scale-105 transition-transform"
+          >
+            <span className="flex items-center justify-center w-full h-full text-white text-2xl">
+              {platform.icon}
+            </span>
+          </Button>
+        ))}
+      </div>
+    );
+  }
 
   // Compact variant - just a share button
   if (variant === 'compact') {
@@ -133,18 +156,19 @@ export const SocialSharing: React.FC<SocialSharingProps> = ({
             </div>
 
             {/* Social Platforms */}
-            <div className="grid grid-cols-4 gap-3">
+            <div className="flex gap-3">
               {Object.entries(socialPlatforms).map(([key, platform]) => (
                 <Button
                   key={key}
-                  variant="outline"
-                  size="sm"
-                  className="flex flex-col items-center gap-1 h-auto py-3"
-                  style={{ borderColor: platform.color + '20' }}
+                  variant="ghost"
+                  size="icon"
+                  style={{ backgroundColor: platform.color, borderRadius: '12px', width: '48px', height: '48px', padding: 0 }}
                   onClick={() => handlePlatformShare(key)}
+                  className="shadow hover:scale-105 transition-transform"
                 >
-                  <span className="text-lg">{platform.icon}</span>
-                  <span className="text-xs">{platform.name}</span>
+                  <span className="flex items-center justify-center w-full h-full text-white text-2xl">
+                    {platform.icon}
+                  </span>
                 </Button>
               ))}
             </div>
@@ -189,7 +213,6 @@ export const SocialSharing: React.FC<SocialSharingProps> = ({
                   onClick={() => handlePlatformShare(key)}
                 >
                   <span>{platform.icon}</span>
-                  <span className="text-sm">{platform.name}</span>
                 </Button>
               ))}
             </div>

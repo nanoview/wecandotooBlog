@@ -24,6 +24,8 @@ import ImageUploadDemo from "./pages/ImageUploadDemo";
 import SocialSharingDemo from "./pages/SocialSharingDemo";
 import NotFound from "./pages/NotFound";
 import ConfirmSubscription from "./pages/ConfirmSubscription";
+import AuthConfirm from "./pages/AuthConfirm";
+import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
 
@@ -57,6 +59,8 @@ const App = () => (
             <Route path="/image-demo" element={<ImageUploadDemo />} />
             <Route path="/social-demo" element={<SocialSharingDemo />} />
             <Route path="/confirm-subscription" element={<ConfirmSubscription />} />
+            <Route path="/auth/confirm" element={<AuthConfirm />} />
+            <Route path="/auth/reset-password" element={<ResetPassword />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

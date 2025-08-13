@@ -10,7 +10,7 @@ import BlockEditor, { Block } from '@/components/BlockEditor';
 import GoogleAd from '@/components/GoogleAd';
 import BackToTopButton from '@/components/BackToTopButton';
 import SocialSharing from '@/components/SocialSharing';
-import SocialActionBar from '@/components/SocialActionBar';
+// ...existing code...
 import { fetchBlogPost, fetchBlogPostBySlug, fetchBlogPostsByCategory } from '@/services/blogService';
 import { BlogPost as BlogPostType } from '@/types/blog';
 import { useToast } from '@/hooks/use-toast';
@@ -489,12 +489,8 @@ const BlogPostDetail = () => {
         </div>
       </section>
 
-      {/* Social Action Bar - Sticky */}
-      <SocialActionBar 
-        post={post} 
-        position="floating" 
-        showStats={true}
-      />
+  {/* Social Sharing - Only icons */}
+  <SocialSharing post={post} onlyIcons={true} />
 
       <BackToTopButton />
     </div>
