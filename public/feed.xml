@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>WeCanDoToo.com Blog</title>
+    <link>https://wecandotoo.com</link>
+    <description>Latest blog posts from WeCanDoToo.com - Web development, technology, and career insights</description>
+    <language>en-us</language>
+    <lastBuildDate>Sun, 18 Aug 2025 00:00:00 GMT</lastBuildDate>
+    <pubDate>Sun, 18 Aug 2025 00:00:00 GMT</pubDate>
+    <ttl>60</ttl>
+    <atom:link href="https://wecandotoo.com/feed.xml" rel="self" type="application/rss+xml"/>
+    <generator>WeCanDoToo.com RSS Generator</generator>
+    <webMaster>admin@wecandotoo.com (WeCanDoToo Admin)</webMaster>
+    <managingEditor>admin@wecandotoo.com (WeCanDoToo Editorial)</managingEditor>
+    <image>
+      <url>https://wecandotoo.com/favicon.ico</url>
+      <title>WeCanDoToo.com Blog</title>
+      <link>https://wecandotoo.com</link>
+      <width>32</width>
+      <height>32</height>
+    </image>
+    
+    <!-- RSS items will be generated dynamically -->
+    <!-- Use the RSS Generator in Admin -> SEO tab to create updated feed -->
+    
+  </channel>
+</rss>

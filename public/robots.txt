@@ -12,3 +12,12 @@ Allow: /
 
 User-agent: *
 Allow: /
+
+# Sitemap location
+Sitemap: https://wecandotoo.com/sitemap.xml
+
+# RSS Feed location
+Sitemap: https://wecandotoo.com/sitemap.rss
+
+# Block admin areas from crawling
+Disallow: /admin*

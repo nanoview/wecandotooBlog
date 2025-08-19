@@ -127,11 +127,11 @@ export const SocialSharing: React.FC<SocialSharingProps> = ({
           <Button 
             variant="outline" 
             size="sm" 
-            className={className}
+            className={`flex items-center gap-1 text-xs h-8 px-2 ${className}`}
             onClick={isWebShareSupported() ? handleNativeShare : undefined}
           >
-            <Share2 className="h-4 w-4" />
-            {showLabel && <span className="ml-2">Share</span>}
+            <Share2 className="h-3 w-3" />
+            {showLabel && <span>Share</span>}
           </Button>
         </DialogTrigger>
         <DialogContent className="sm:max-w-md">
@@ -264,9 +264,9 @@ export const SocialSharing: React.FC<SocialSharingProps> = ({
           {/* More options */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="w-12 h-12 rounded-full">
+            { /* <Button variant="outline" size="sm" className="w-12 h-12 rounded-full">
                 <MoreHorizontal className="h-4 w-4" />
-              </Button>
+              </Button> */}
             </DropdownMenuTrigger>
             <DropdownMenuContent side="left">
               {Object.entries(socialPlatforms)

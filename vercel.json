@@ -1,0 +1,30 @@
+{
+  "redirects": [
+    {
+      "source": "/sitemap.rss",
+      "destination": "https://rowcloxlszwnowlggqon.supabase.co/functions/v1/rss-feed",
+      "statusCode": 200
+    },
+    {
+      "source": "/feed.xml",
+      "destination": "https://rowcloxlszwnowlggqon.supabase.co/functions/v1/rss-feed",
+      "statusCode": 200
+    },
+    {
+      "source": "/rss.xml",
+      "destination": "https://rowcloxlszwnowlggqon.supabase.co/functions/v1/rss-feed",
+      "statusCode": 200
+    },
+    {
+      "source": "/sitemap.xml",
+      "destination": "https://rowcloxlszwnowlggqon.supabase.co/functions/v1/sitemap",
+      "statusCode": 200
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

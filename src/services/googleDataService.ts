@@ -74,8 +74,13 @@ export class GoogleDataService {
    * Initiate Google OAuth authentication
    */
   authenticate(): void {
-    // Use the client ID from environment variables or fallback to the stored one
-    const clientId = import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID || '622861962504-a2ob64p9ve0drgal7ncoujm58mmsitjr.apps.googleusercontent.com';
+    // Use the client ID from environment variables - REQUIRED!
+    const clientId = import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID;
+    
+    if (!clientId) {
+      console.error('VITE_GOOGLE_OAUTH_CLIENT_ID is not configured in environment variables');
+      throw new Error('Google OAuth Client ID is not configured. Please check your .env file.');
+    }
     
     // Redirect to Google OAuth with our edge function as callback
     const authUrl = new URL('https://accounts.google.com/oauth2/auth');

@@ -14,7 +14,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import RichTextEditor from '@/components/RichTextEditor';
 import ImageUploader from '@/components/ImageUploader';
-import { handleImagePaste, type UploadedImage } from '@/services/imageUploadService';
+import { handleImagePaste, uploadImage, validateImageFile, generateImageHTML, type UploadedImage } from '@/services/imageUploadService';
 
 interface PostEditorProps {
   isOpen: boolean;
@@ -184,8 +184,34 @@ const PostEditor: React.FC<PostEditorProps> = ({
   };
 
   const handleImageUpload = async (file: File): Promise<string> => {
-    // This function is kept for backward compatibility with RichTextEditor
-    return URL.createObjectURL(file);
+    try {
+      // Validate the image file first
+      const validation = validateImageFile(file);
+      if (!validation.valid) {
+        throw new Error(validation.error || 'Invalid image file');
+      }
+
+      // Upload image to Supabase storage with SEO optimization
+      const uploadedImage = await uploadImage(file, {
+        title: title,
+        keywords: tags,
+        content: content
+      });
+
+      // Add to uploaded images list
+      setUploadedImages(prev => [...prev, uploadedImage]);
+
+      // Return the permanent URL
+      return uploadedImage.url;
+    } catch (error) {
+      console.error('Image upload error:', error);
+      toast({
+        title: "Upload Failed",
+        description: error instanceof Error ? error.message : "Failed to upload image",
+        variant: "destructive"
+      });
+      throw error;
+    }
   };
 
   const handleImageUploaded = (image: UploadedImage) => {
@@ -298,22 +324,22 @@ const PostEditor: React.FC<PostEditorProps> = ({
   const readability = getReadabilityScore();
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-7xl max-h-[90vh] overflow-hidden flex flex-col">
-        <CardHeader className="border-b px-6 py-4 flex-shrink-0">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4">
+      <Card className="w-full max-w-7xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
+        <CardHeader className="border-b px-3 sm:px-6 py-3 sm:py-4 flex-shrink-0">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Avatar className="h-10 w-10">
+            <div className="flex items-center space-x-2 sm:space-x-4">
+              <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
                 <AvatarImage src={user?.user_metadata?.avatar_url} />
                 <AvatarFallback>
                   {user?.user_metadata?.full_name?.charAt(0) || user?.email?.charAt(0) || 'U'}
                 </AvatarFallback>
               </Avatar>
               <div>
-                <CardTitle className="text-xl font-semibold">
+                <CardTitle className="text-lg sm:text-xl font-semibold">
                   {mode === 'create' ? 'Create SEO-Optimized Post' : 'Edit Post'}
                 </CardTitle>
-                <p className="text-sm text-gray-600">
+                <p className="text-xs sm:text-sm text-gray-600">
                   SEO Score: <span className={`font-semibold ${
                     seoScore >= 80 ? 'text-green-600' : 
                     seoScore >= 60 ? 'text-yellow-600' : 'text-red-600'
@@ -321,33 +347,34 @@ const PostEditor: React.FC<PostEditorProps> = ({
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setIsPreview(!isPreview)}
+                className="h-8 w-8 sm:h-10 sm:w-10"
               >
-                {isPreview ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                {isPreview ? <EyeOff className="h-4 w-4 sm:h-5 sm:w-5" /> : <Eye className="h-4 w-4 sm:h-5 sm:w-5" />}
               </Button>
-              <Button variant="ghost" size="icon" onClick={onClose}>
-                <X className="h-5 w-5" />
+              <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 sm:h-10 sm:w-10">
+                <X className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
             </div>
           </div>
         </CardHeader>
 
-        <CardContent className="flex-1 overflow-auto p-6">
-          <div className="flex h-full gap-6">
+        <CardContent className="flex-1 overflow-auto p-3 sm:p-6">
+          <div className="flex flex-col lg:flex-row h-full gap-3 sm:gap-6">
             {/* Main Editor */}
-            <div className="flex-1">
-              <div className="grid gap-6">
+            <div className="flex-1 order-2 lg:order-1">
+              <div className="grid gap-3 sm:gap-6">
                 {/* Title */}
                 <div>
                   <Input
                     placeholder="Post Title"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="text-2xl font-semibold"
+                    className="text-lg sm:text-2xl font-semibold"
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     {title.length}/60 characters
@@ -356,18 +383,21 @@ const PostEditor: React.FC<PostEditorProps> = ({
 
                 {/* Featured Image */}
                 <div>
-                  <div className="flex items-center gap-4 mb-2">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 mb-2">
                     <Button
                       variant="outline"
                       onClick={() => fileInputRef.current?.click()}
+                      size="sm"
                     >
-                      <ImageIcon className="w-4 h-4 mr-2" />
-                      Set Featured Image
+                      <ImageIcon className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+                      <span className="text-xs sm:text-sm">Set Featured Image</span>
                     </Button>
                     {featuredImage && (
                       <Button
                         variant="ghost"
                         onClick={() => setFeaturedImage('')}
+                        size="sm"
+                        className="text-xs sm:text-sm"
                       >
                         Remove Image
                       </Button>
@@ -393,11 +423,11 @@ const PostEditor: React.FC<PostEditorProps> = ({
 
                 {/* Content Editor */}
                 {isPreview ? (
-                  <div className="prose prose-lg max-w-none min-h-[400px]">
+                  <div className="blog-content min-h-[300px] sm:min-h-[400px]">
                     <div dangerouslySetInnerHTML={{ __html: content }} />
                   </div>
                 ) : (
-                  <div className="min-h-[400px]">
+                  <div className="min-h-[300px] sm:min-h-[400px]">
                     <RichTextEditor
                       initialContent={content}
                       onChange={handleContentChange}
@@ -409,28 +439,28 @@ const PostEditor: React.FC<PostEditorProps> = ({
             </div>
 
             {/* Enhanced Sidebar with SEO and Images */}
-            <div className="w-96 border-l pl-6">
+            <div className="w-full lg:w-96 border-t lg:border-t-0 lg:border-l pt-3 lg:pt-0 lg:pl-6 order-1 lg:order-2">
               <Tabs defaultValue="content" className="h-full">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="content">Content</TabsTrigger>
-                  <TabsTrigger value="images">Images</TabsTrigger>
-                  <TabsTrigger value="seo">SEO</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-3 h-auto">
+                  <TabsTrigger value="content" className="text-xs sm:text-sm py-2">Content</TabsTrigger>
+                  <TabsTrigger value="images" className="text-xs sm:text-sm py-2">Images</TabsTrigger>
+                  <TabsTrigger value="seo" className="text-xs sm:text-sm py-2">SEO</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="content" className="space-y-6 mt-6">
+                <TabsContent value="content" className="space-y-3 sm:space-y-6 mt-3 sm:mt-6">
                   {/* Category */}
                   <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm">Category</CardTitle>
+                    <CardHeader className="pb-2 sm:pb-3">
+                      <CardTitle className="text-xs sm:text-sm">Category</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <Select value={category} onValueChange={setCategory}>
-                        <SelectTrigger>
+                        <SelectTrigger className="text-xs sm:text-sm">
                           <SelectValue placeholder="Select category" />
                         </SelectTrigger>
                         <SelectContent>
                           {categories.map((cat) => (
-                            <SelectItem key={cat} value={cat}>
+                            <SelectItem key={cat} value={cat} className="text-xs sm:text-sm">
                               {cat}
                             </SelectItem>
                           ))}
@@ -441,31 +471,32 @@ const PostEditor: React.FC<PostEditorProps> = ({
 
                   {/* Tags */}
                   <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm">Tags</CardTitle>
+                    <CardHeader className="pb-2 sm:pb-3">
+                      <CardTitle className="text-xs sm:text-sm">Tags</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="flex gap-2">
+                    <CardContent className="space-y-2 sm:space-y-3">
+                      <div className="flex gap-1 sm:gap-2">
                         <Input
                           placeholder="Add tag"
                           value={newTag}
                           onChange={(e) => setNewTag(e.target.value)}
                           onKeyPress={(e) => e.key === 'Enter' && addTag()}
+                          className="text-xs sm:text-sm"
                         />
-                        <Button onClick={addTag}>
-                          <Hash className="w-4 h-4" />
+                        <Button onClick={addTag} size="sm">
+                          <Hash className="w-3 h-3 sm:w-4 sm:h-4" />
                         </Button>
                       </div>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-1 sm:gap-2">
                         {tags.map((tag) => (
                           <Badge
                             key={tag}
                             variant="secondary"
-                            className="flex items-center gap-1"
+                            className="flex items-center gap-1 text-xs"
                           >
                             {tag}
                             <X
-                              className="h-3 w-3 cursor-pointer"
+                              className="h-2 w-2 sm:h-3 sm:w-3 cursor-pointer"
                               onClick={() => removeTag(tag)}
                             />
                           </Badge>
@@ -476,8 +507,8 @@ const PostEditor: React.FC<PostEditorProps> = ({
 
                   {/* Reading Time */}
                   <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm">Reading Time</CardTitle>
+                    <CardHeader className="pb-2 sm:pb-3">
+                      <CardTitle className="text-xs sm:text-sm">Reading Time</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="flex items-center gap-2">
@@ -486,13 +517,14 @@ const PostEditor: React.FC<PostEditorProps> = ({
                           value={readTime}
                           onChange={(e) => setReadTime(parseInt(e.target.value) || 1)}
                           min="1"
-                          className="w-20"
+                          className="w-16 sm:w-20 text-xs sm:text-sm"
                         />
-                        <span className="text-sm text-gray-600">minutes</span>
+                        <span className="text-xs sm:text-sm text-gray-600">minutes</span>
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={calculateReadTime}
+                          className="text-xs"
                         >
                           Auto
                         </Button>
@@ -709,33 +741,37 @@ const PostEditor: React.FC<PostEditorProps> = ({
           </div>
         </CardContent>
 
-        <div className="border-t p-4 flex justify-between items-center bg-gray-50">
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-600">{readTime} min read</span>
+        <div className="border-t p-3 sm:p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gray-50 gap-3 sm:gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
+            <span className="text-xs sm:text-sm text-gray-600">{readTime} min read</span>
             <div className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-full ${
+              <div className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${
                 seoScore >= 80 ? 'bg-green-500' : 
                 seoScore >= 60 ? 'bg-yellow-500' : 'bg-red-500'
               }`}></div>
-              <span className="text-sm text-gray-600">
+              <span className="text-xs sm:text-sm text-gray-600">
                 SEO: {seoScore >= 80 ? 'Good' : seoScore >= 60 ? 'Needs Work' : 'Poor'}
               </span>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto">
             <Button
               variant="outline"
               onClick={() => handleSave('draft')}
               disabled={isPublishing}
+              className="flex-1 sm:flex-none text-xs sm:text-sm"
+              size="sm"
             >
-              <Save className="w-4 h-4 mr-2" />
+              <Save className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
               Save Draft
             </Button>
             <Button
               onClick={() => handleSave('published')}
               disabled={isPublishing}
+              className="flex-1 sm:flex-none text-xs sm:text-sm"
+              size="sm"
             >
-              <Send className="w-4 h-4 mr-2" />
+              <Send className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
               {isPublishing ? 'Publishing...' : 'Publish'}
             </Button>
           </div>

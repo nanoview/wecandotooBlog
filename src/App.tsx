@@ -26,6 +26,10 @@ import NotFound from "./pages/NotFound";
 import ConfirmSubscription from "./pages/ConfirmSubscription";
 import AuthConfirm from "./pages/AuthConfirm";
 import ResetPassword from "./pages/ResetPassword";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import RSSFeed from "./pages/RSSFeed";
+import SitemapXML from "./pages/SitemapXML";
+import CookieConsentBanner from "@/components/CookieConsentBanner";
 
 const queryClient = new QueryClient();
 
@@ -48,8 +52,8 @@ const App = () => (
             <Route path="/edit/:id" element={<Edit />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/auth" element={<Auth />} />
-            <Route path="/admin-login" element={<AdminLogin />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/google-services" element={<GoogleServicesSetup />} />
             <Route path="/oauth/callback" element={<OAuthCallback />} />
@@ -61,8 +65,13 @@ const App = () => (
             <Route path="/confirm-subscription" element={<ConfirmSubscription />} />
             <Route path="/auth/confirm" element={<AuthConfirm />} />
             <Route path="/auth/reset-password" element={<ResetPassword />} />
+            <Route path="/sitemap.rss" element={<RSSFeed />} />
+            <Route path="/feed.xml" element={<RSSFeed />} />
+            <Route path="/rss.xml" element={<RSSFeed />} />
+            <Route path="/sitemap.xml" element={<SitemapXML />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <CookieConsentBanner />
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>

@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, MessageSquare, Shield, Settings, LogOut, BarChart3, FileText, Edit, Trash2, Plus, Eye } from 'lucide-react';
+import { Users, MessageSquare, Shield, Settings, LogOut, BarChart3, FileText, Edit, Trash2, Plus, Eye, Mail, Search, Database } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,14 +9,21 @@ import Header from '@/components/navigation/Header';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import SupabaseGoogleDashboard from '@/components/SupabaseGoogleDashboard';
-import GoogleDataDashboard from '@/components/GoogleDataDashboard';
 import { BlogPost } from '@/types/blog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import OverviewTab from '@/components/admin/OverviewTab';
-import PostsTab from '@/components/admin/PostsTab';
-import DashboardTab from '@/components/admin/DashboardTab';
-import SettingsTab from '@/components/admin/SettingsTab';
+import LoadingSkeleton from '@/components/LoadingSkeleton';
+
+// Lazy load heavy components
+const SupabaseGoogleDashboard = lazy(() => import('@/components/SupabaseGoogleDashboard'));
+const GoogleDataDashboard = lazy(() => import('@/components/GoogleDataDashboard'));
+const OverviewTab = lazy(() => import('@/components/admin/OverviewTab'));
+const PostsTab = lazy(() => import('@/components/admin/PostsTab'));
+const DashboardTab = lazy(() => import('@/components/admin/DashboardTab'));
+const SettingsTab = lazy(() => import('@/components/admin/SettingsTab'));
+const UserManagement = lazy(() => import('@/components/admin/UserManagement'));
+const ZohoMailChecker = lazy(() => import('@/components/admin/ZohoMailChecker'));
+const SEOUtilities = lazy(() => import('@/components/admin/SEOUtilities'));
+const DatabaseViewer = lazy(() => import('@/components/admin/DatabaseViewer'));
 
 interface Profile {
   id: string;
@@ -57,6 +64,12 @@ interface BlogPostAdmin {
   };
 }
 
+interface TabsContentProps {
+  value: string;
+  className?: string;
+  children?: React.ReactNode;
+}
+
 const Admin = () => {
   const { user, userRole, username, loading, refreshUserData, isNanopro, signOut } = useAuth();
   const navigate = useNavigate();
@@ -95,99 +108,94 @@ const Admin = () => {
     }
   }, [user, userRole, loading, navigate]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
-      // Fetch all profiles
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, user_id, username, display_name, created_at')
-        .order('created_at', { ascending: false });
+      setLoadingData(true);
+      
+      // Use Promise.all to fetch data in parallel with proper joins
+      const [profilesResult, commentsResult, postsResult] = await Promise.all([
+        // Fetch profiles with roles in a single query
+        supabase
+          .from('profiles')
+          .select(`
+            id, user_id, username, display_name, created_at,
+            user_roles(role)
+          `)
+          .order('created_at', { ascending: false })
+          .limit(50), // Limit initial load
 
-      if (profilesError) throw profilesError;
+        // Fetch comments with profile data in a single query
+        supabase
+          .from('comments')
+          .select(`
+            id, content, blog_post_id, created_at, user_id,
+            profiles!comments_user_id_fkey (username, display_name)
+          `)
+          .order('created_at', { ascending: false })
+          .limit(100), // Limit initial load
 
-      // Fetch roles for each profile
-      const profilesWithRoles = await Promise.all(
-        (profilesData || []).map(async (profile) => {
-          const { data: roleData } = await supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', profile.user_id)
-            .single();
+        // Fetch blog posts with author profiles in a single query
+        supabase
+          .from('blog_posts')
+          .select(`
+            id, title, slug, excerpt, category, featured_image,
+            published_at, created_at, updated_at, status, author_id,
+            profiles!blog_posts_author_id_fkey (username, display_name)
+          `)
+          .order('created_at', { ascending: false })
+          .limit(50) // Limit initial load
+      ]);
 
-          return {
-            ...profile,
-            user_roles: roleData ? [{ role: roleData.role }] : [{ role: 'user' }]
-          };
-        })
-      );
+      // Process profiles data
+      if (profilesResult.data) {
+        const processedProfiles = profilesResult.data.map(profile => ({
+          ...profile,
+          user_roles: profile.user_roles && profile.user_roles.length > 0 
+            ? profile.user_roles 
+            : [{ role: 'user' }]
+        }));
+        setProfiles(processedProfiles);
+      }
 
-      setProfiles(profilesWithRoles);
+      // Process comments data
+      if (commentsResult.data) {
+        const processedComments = commentsResult.data.map(comment => ({
+          ...comment,
+          profiles: Array.isArray(comment.profiles) 
+            ? comment.profiles[0] || { username: 'Unknown', display_name: 'Unknown User' }
+            : comment.profiles || { username: 'Unknown', display_name: 'Unknown User' }
+        }));
+        setComments(processedComments);
+      }
 
-      // Fetch all comments
-      const { data: commentsData, error: commentsError } = await supabase
-        .from('comments')
-        .select('id, content, blog_post_id, created_at, user_id')
-        .order('created_at', { ascending: false });
+      // Process blog posts data
+      if (postsResult.data) {
+        const processedPosts = postsResult.data.map(post => ({
+          ...post,
+          content: '', // Don't load full content for list view
+          profiles: Array.isArray(post.profiles)
+            ? post.profiles[0] || { username: 'Unknown', display_name: 'Unknown Author' }
+            : post.profiles || { username: 'Unknown', display_name: 'Unknown Author' }
+        }));
+        setBlogPosts(processedPosts);
+      }
 
-      if (commentsError) throw commentsError;
-
-      // Fetch profiles for each comment
-      const commentsWithProfiles = await Promise.all(
-        (commentsData || []).map(async (comment) => {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('username, display_name')
-            .eq('user_id', comment.user_id)
-            .single();
-
-          return {
-            ...comment,
-            profiles: profile || { username: 'Unknown', display_name: 'Unknown User' }
-          };
-        })
-      );
-
-      setComments(commentsWithProfiles);
-
-      // Fetch all blog posts with proper joins
-      const { data: postsData, error: postsError } = await supabase
-        .from('blog_posts')
-        .select(`
-          id, title, slug, excerpt, content, category, featured_image,
-          published_at, created_at, updated_at, status, author_id
-        `)
-        .order('created_at', { ascending: false });
-
-      if (postsError) throw postsError;
-
-      // Fetch author profiles for each post
-      const postsWithProfiles = await Promise.all(
-        (postsData || []).map(async (post) => {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('username, display_name')
-            .eq('user_id', post.author_id)
-            .single();
-
-          return {
-            ...post,
-            profiles: profile || { username: 'Unknown', display_name: 'Unknown Author' }
-          };
-        })
-      );
-
-      setBlogPosts(postsWithProfiles);
+      // Handle any errors
+      if (profilesResult.error) throw profilesResult.error;
+      if (commentsResult.error) throw commentsResult.error;
+      if (postsResult.error) throw postsResult.error;
 
     } catch (error: any) {
+      console.error('Admin data fetch error:', error);
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to load admin data",
         variant: "destructive"
       });
     } finally {
       setLoadingData(false);
     }
-  };
+  }, [toast]);
 
   const deleteComment = async (commentId: string) => {
     try {
@@ -348,73 +356,143 @@ const Admin = () => {
       
       {/* Admin Title Section */}
       <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-center gap-2">
-            <Shield className="w-5 h-5 text-primary" />
-            <h1 className="text-xl font-semibold">Admin Panel</h1>
-            {isNanopro && (
-              <Badge variant="default" className="bg-gradient-to-r from-purple-500 to-blue-500 text-white">
-                Super Admin
-              </Badge>
-            )}
+        <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4">
+          <div className="flex items-center justify-between sm:justify-center gap-2">
+            <div className="flex items-center gap-2">
+              <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+              <h1 className="text-lg sm:text-xl font-semibold">Admin Panel</h1>
+              {isNanopro && (
+                <Badge variant="default" className="bg-gradient-to-r from-purple-500 to-blue-500 text-white text-xs sm:text-sm">
+                  Super Admin
+                </Badge>
+              )}
+            </div>
+            {/* Mobile logout button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={signOut}
+              className="sm:hidden flex items-center gap-1 text-red-600 hover:bg-red-50"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="sr-only">Sign Out</span>
+            </Button>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-8">
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="overview" className="flex items-center gap-2">
-              <Shield className="w-4 h-4" />
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="posts" className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              Blog Posts
-            </TabsTrigger>
-            <TabsTrigger value="google" className="flex items-center gap-2">
-              <BarChart3 className="w-4 h-4" />
-              Google Analytics
-            </TabsTrigger>
-            <TabsTrigger value="dashboard" className="flex items-center gap-2">
-              <BarChart3 className="w-4 h-4" />
-              Site Analytics
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2">
-              <Settings className="w-4 h-4" />
-              Settings
-            </TabsTrigger>
-          </TabsList>
+          {/* Mobile-friendly tab list with responsive layout */}
+          <div className="w-full">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-9 gap-1 h-auto p-1">
+              <TabsTrigger value="overview" className="flex-col sm:flex-row h-auto py-2 px-2 text-xs sm:text-sm">
+                <Shield className="w-3 h-3 sm:w-4 sm:h-4 mb-1 sm:mb-0 sm:mr-2" />
+                <span className="hidden sm:inline">Overview</span>
+                <span className="sm:hidden">Home</span>
+              </TabsTrigger>
+              <TabsTrigger value="posts" className="flex-col sm:flex-row h-auto py-2 px-2 text-xs sm:text-sm">
+                <FileText className="w-3 h-3 sm:w-4 sm:h-4 mb-1 sm:mb-0 sm:mr-2" />
+                <span className="hidden sm:inline">Blog Posts</span>
+                <span className="sm:hidden">Posts</span>
+              </TabsTrigger>
+              <TabsTrigger value="users" className="flex-col sm:flex-row h-auto py-2 px-2 text-xs sm:text-sm">
+                <Users className="w-3 h-3 sm:w-4 sm:h-4 mb-1 sm:mb-0 sm:mr-2" />
+                <span>Users</span>
+              </TabsTrigger>
+              <TabsTrigger value="seo" className="flex-col sm:flex-row h-auto py-2 px-2 text-xs sm:text-sm">
+                <Search className="w-3 h-3 sm:w-4 sm:h-4 mb-1 sm:mb-0 sm:mr-2" />
+                <span>SEO</span>
+              </TabsTrigger>
+              <TabsTrigger value="emails" className="flex-col sm:flex-row h-auto py-2 px-2 text-xs sm:text-sm">
+                <Mail className="w-3 h-3 sm:w-4 sm:h-4 mb-1 sm:mb-0 sm:mr-2" />
+                <span>Emails</span>
+              </TabsTrigger>
+              <TabsTrigger value="google" className="flex-col sm:flex-row h-auto py-2 px-2 text-xs sm:text-sm">
+                <BarChart3 className="w-3 h-3 sm:w-4 sm:h-4 mb-1 sm:mb-0 sm:mr-2" />
+                <span className="hidden sm:inline">Google APIs</span>
+                <span className="sm:hidden">Google</span>
+              </TabsTrigger>
+              <TabsTrigger value="dashboard" className="flex-col sm:flex-row h-auto py-2 px-2 text-xs sm:text-sm">
+                <BarChart3 className="w-3 h-3 sm:w-4 sm:h-4 mb-1 sm:mb-0 sm:mr-2" />
+                <span className="hidden sm:inline">Dashboard (Demo)</span>
+                <span className="sm:hidden">Demo</span>
+              </TabsTrigger>
+              <TabsTrigger value="database" className="flex-col sm:flex-row h-auto py-2 px-2 text-xs sm:text-sm">
+                <Database className="w-3 h-3 sm:w-4 sm:h-4 mb-1 sm:mb-0 sm:mr-2" />
+                <span className="hidden sm:inline">Database</span>
+                <span className="sm:hidden">DB</span>
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="flex-col sm:flex-row h-auto py-2 px-2 text-xs sm:text-sm">
+                <Settings className="w-3 h-3 sm:w-4 sm:h-4 mb-1 sm:mb-0 sm:mr-2" />
+                <span>Settings</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="overview" className="space-y-6">
-            <OverviewTab
-              blogPosts={blogPosts}
-              profiles={profiles}
-              comments={comments}
-              userRole={userRole}
-              username={username}
-              updateUserRole={updateUserRole}
-            />
+            <Suspense fallback={<LoadingSkeleton />}>
+              <OverviewTab
+                blogPosts={blogPosts}
+                profiles={profiles}
+                comments={comments}
+                userRole={userRole}
+                username={username}
+                updateUserRole={updateUserRole}
+              />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="posts" className="space-y-6">
-            <PostsTab
-              blogPosts={blogPosts}
-              togglePostStatus={togglePostStatus}
-              deleteBlogPost={deleteBlogPost}
-            />
+            <Suspense fallback={<LoadingSkeleton />}>
+              <PostsTab
+                blogPosts={blogPosts}
+                togglePostStatus={togglePostStatus}
+                deleteBlogPost={deleteBlogPost}
+              />
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="users" className="space-y-6">
+            <Suspense fallback={<LoadingSkeleton />}>
+              <UserManagement />
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="seo" className="space-y-6">
+            <Suspense fallback={<LoadingSkeleton />}>
+              <SEOUtilities />
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="emails" className="space-y-6">
+            <Suspense fallback={<LoadingSkeleton />}>
+              <ZohoMailChecker />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="google" className="space-y-6">
-            <GoogleDataDashboard />
+            <Suspense fallback={<LoadingSkeleton />}>
+              <GoogleDataDashboard />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="dashboard" className="space-y-6">
-            <DashboardTab />
+            <Suspense fallback={<LoadingSkeleton />}>
+              <DashboardTab />
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="database" className="space-y-6">
+            <Suspense fallback={<LoadingSkeleton />}>
+              <DatabaseViewer />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="settings" className="space-y-6">
-            <SettingsTab />
+            <Suspense fallback={<LoadingSkeleton />}>
+              <SettingsTab />
+            </Suspense>
           </TabsContent>
 
         </Tabs>

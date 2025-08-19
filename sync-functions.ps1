@@ -6,38 +6,40 @@ param(
 Write-Host "🚀 Supabase Functions Sync Script" -ForegroundColor Cyan
 Write-Host "Action: $Action" -ForegroundColor Yellow
 
-switch ($Action.ToLower()) {
-    "deploy" {
-        Write-Host "📦 Deploying all functions..." -ForegroundColor Green
-        npx supabase functions deploy --import-map ./import_map.json
-        if ($LASTEXITCODE -eq 0) {
+# Stop script on first error
+$ErrorActionPreference = "Stop"
+
+try {
+    switch ($Action.ToLower()) {
+        "deploy" {
+            Write-Host "📦 Deploying all functions..." -ForegroundColor Green
+            npx supabase functions deploy --import-map ./import_map.json
             Write-Host "✅ Functions deployed successfully!" -ForegroundColor Green
-        } else {
-            Write-Host "❌ Deployment failed!" -ForegroundColor Red
         }
-    }
-    "list" {
-        Write-Host "📋 Listing functions..." -ForegroundColor Blue
-        npx supabase functions list
-    }
-    "serve" {
-        Write-Host "🔧 Starting local server..." -ForegroundColor Magenta
-        npx supabase functions serve --import-map ./import_map.json
-    }
-    "status" {
-        Write-Host "📊 Checking status..." -ForegroundColor Cyan
-        npx supabase status
-    }
-    "config" {
-        Write-Host "⚙️ Updating configuration..." -ForegroundColor Yellow
-        npx supabase db reset
-        if ($LASTEXITCODE -eq 0) {
+        "list" {
+            Write-Host "📋 Listing functions..." -ForegroundColor Blue
+            npx supabase functions list
+        }
+        "serve" {
+            Write-Host "🔧 Starting local server..." -ForegroundColor Magenta
+            npx supabase functions serve --import-map ./import_map.json
+        }
+        "status" {
+            Write-Host "📊 Checking status..." -ForegroundColor Cyan
+            npx supabase status
+        }
+        "config" {
+            Write-Host "⚙️ Updating configuration..." -ForegroundColor Yellow
+            npx supabase db reset
             Write-Host "✅ Configuration updated!" -ForegroundColor Green
-        } else {
-            Write-Host "❌ Configuration update failed!" -ForegroundColor Red
+        }
+        default {
+            Write-Host '❓ Available actions: deploy, list, serve, status, config' -ForegroundColor White
         }
     }
-    default {
-        Write-Host "❓ Available actions: deploy, list, serve, status, config" -ForegroundColor White
-    }
+}
+catch {
+    Write-Host "❌ An error occurred:" -ForegroundColor Red
+    Write-Host $_.Exception.Message -ForegroundColor Red
+    exit 1
 }

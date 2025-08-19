@@ -1,1 +1,10 @@
+# RSS Feed redirects (sitemap.rss as primary)
+/sitemap.rss https://rowcloxlszwnowlggqon.supabase.co/functions/v1/rss-feed 200
+/feed.xml https://rowcloxlszwnowlggqon.supabase.co/functions/v1/rss-feed 200
+/rss.xml https://rowcloxlszwnowlggqon.supabase.co/functions/v1/rss-feed 200
+
+# Sitemap redirects
+/sitemap.xml https://rowcloxlszwnowlggqon.supabase.co/functions/v1/sitemap 200
+
+# SPA fallback
 /* /index.html 200

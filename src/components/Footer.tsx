@@ -73,10 +73,10 @@ const Footer = () => {
                 hello@wecandotoo.com
               </a>
               <a 
-                href="mailto:support@wecandotoo.com" 
+                href="mailto:arif.js@hotmail.com" 
                 className="block text-gray-300 hover:text-blue-400 transition-colors text-sm"
               >
-                support@wecandotoo.com
+                arif.js@hotmail.com
               </a>
               <div className="pt-2">
                 <p className="text-gray-400 text-xs">

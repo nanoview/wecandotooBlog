@@ -80,13 +80,18 @@ const GoogleServicesSetup: React.FC = () => {
       
       const oauthParams = new URLSearchParams({
         client_id: import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID || '',
-        redirect_uri: `${window.location.origin}/oauth/callback`,
+        redirect_uri: 'https://rowcloxlszwnowlggqon.supabase.co/functions/v1/google-oauth',
         response_type: 'code',
         scope: scopes.join(' '),
         access_type: 'offline',
         prompt: 'consent',
         state: Math.random().toString(36).substring(7)
       });
+
+      // Check if client ID is configured
+      if (!import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID) {
+        throw new Error('Google OAuth Client ID is not configured. Please add VITE_GOOGLE_OAUTH_CLIENT_ID to your .env file.');
+      }
 
       const oauthUrl = `https://accounts.google.com/oauth2/auth?${oauthParams.toString()}`;
 

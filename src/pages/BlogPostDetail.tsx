@@ -10,6 +10,8 @@ import BlockEditor, { Block } from '@/components/BlockEditor';
 import GoogleAd from '@/components/GoogleAd';
 import BackToTopButton from '@/components/BackToTopButton';
 import SocialSharing from '@/components/SocialSharing';
+import SEOMetaTags from '@/components/SEOMetaTags';
+import StructuredData from '@/components/StructuredData';
 // ...existing code...
 import { fetchBlogPost, fetchBlogPostBySlug, fetchBlogPostsByCategory } from '@/services/blogService';
 import { BlogPost as BlogPostType } from '@/types/blog';
@@ -198,10 +200,10 @@ const BlogPostDetail = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Add structured data */}
-      <script type="application/ld+json">
-        {JSON.stringify(structuredData)}
-      </script>
+      {/* SEO Meta Tags */}
+      {post && <SEOMetaTags post={post} />}
+      {post && <StructuredData post={post} type="blogPost" />}
+      
       {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-4xl mx-auto px-4 py-4">
@@ -290,11 +292,7 @@ const BlogPostDetail = () => {
         </header>
 
         {/* Article Content */}
-        <div className="prose prose-lg max-w-none">
-          <p className="text-xl text-gray-700 mb-8 font-medium leading-relaxed tracking-normal">
-            {post.excerpt}
-          </p>
-          
+        <div className="prose prose-lg max-w-none">          
           {contentLoading ? (
             <div className="space-y-4 animate-fade-in">
               <div className="animate-pulse bg-gray-200 h-6 w-3/4 rounded"></div>
@@ -369,47 +367,28 @@ const BlogPostDetail = () => {
                     </div>
                   );
                 } catch {
+                  // If content exists but isn't JSON, render as HTML
+                  if (post.content && post.content.trim()) {
+                    return (
+                      <div 
+                        className="blog-content space-y-6 text-gray-700 leading-relaxed break-words overflow-hidden"
+                        dangerouslySetInnerHTML={{ __html: post.content }}
+                      />
+                    );
+                  }
+                  
+                  // If no content at all, show message instead of Lorem ipsum
                   return (
-                    <div 
-                      className="space-y-6 text-gray-700 leading-relaxed break-words overflow-hidden"
-                      dangerouslySetInnerHTML={{ __html: post.content }}
-                    />
+                    <div className="text-center py-12 text-gray-500">
+                      <p>This post content is being updated. Please check back soon.</p>
+                    </div>
                   );
                 }
               })()
             ) || (
-              // Default content for legacy posts without content
-              <div className="space-y-6 text-gray-700 leading-relaxed">
-                <p>
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-                </p>
-                
-                <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">Key Insights</h2>
-                <p>
-                  Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-                </p>
-                
-                <blockquote className="border-l-4 border-blue-500 pl-6 py-2 bg-blue-50 rounded-r-lg my-8">
-                  <p className="text-lg italic text-gray-700">
-                    "The best way to predict the future is to create it yourself."
-                  </p>
-                </blockquote>
-                
-                <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">Implementation Details</h2>
-                <p>
-                  Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.
-                </p>
-                
-                <ul className="list-disc pl-6 space-y-2">
-                  <li>Nemo enim ipsam voluptatem quia voluptas sit aspernatur</li>
-                  <li>Neque porro quisquam est, qui dolorem ipsum</li>
-                  <li>Ut enim ad minima veniam, quis nostrum exercitationem</li>
-                </ul>
-                
-                <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">Conclusion</h2>
-                <p>
-                  At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident.
-                </p>
+              // Fallback for posts without any content
+              <div className="text-center py-12 text-gray-500">
+                <p>This post content is being updated. Please check back soon.</p>
               </div>
             )
           )}
@@ -423,6 +402,29 @@ const BlogPostDetail = () => {
             showLabel={true}
           />
         </div>
+
+        {/* Tags Section */}
+        {post.tags && post.tags.length > 0 && (
+          <div className="mt-12 pt-8 border-t border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Tags</h3>
+            <div className="flex flex-wrap gap-2">
+              {post.tags.map((tag, index) => (
+                <Link
+                  key={index}
+                  to={`/?tag=${encodeURIComponent(tag)}`}
+                  className="inline-block"
+                >
+                  <Badge
+                    variant="secondary"
+                    className="px-3 py-1 text-sm bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors cursor-pointer hover:shadow-sm"
+                  >
+                    #{tag}
+                  </Badge>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Ad - After content, before author bio */}
         <div className="my-8">
@@ -488,9 +490,6 @@ const BlogPostDetail = () => {
           </div>
         </div>
       </section>
-
-  {/* Social Sharing - Only icons */}
-  <SocialSharing post={post} onlyIcons={true} />
 
       <BackToTopButton />
     </div>

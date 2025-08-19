@@ -36,29 +36,10 @@ const SupabaseGoogleDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
   
-  // Mock data - replace with actual API calls
-  const [analyticsData, setAnalyticsData] = useState<AnalyticsData>({
-    sessions: 12543,
-    users: 8721,
-    pageviews: 23456,
-    bounceRate: 45.2,
-    sessionDuration: "2m 34s"
-  });
-
-  const [adsenseData, setAdsenseData] = useState<AdSenseData>({
-    earnings: 234.56,
-    clicks: 892,
-    impressions: 45231,
-    ctr: 1.97,
-    rpm: 5.18
-  });
-
-  const [searchConsoleData, setSearchConsoleData] = useState<SearchConsoleData>({
-    clicks: 1234,
-    impressions: 56789,
-    ctr: 2.17,
-    position: 12.4
-  });
+  // Real data states - no mock data
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
+  const [adsenseData, setAdsenseData] = useState<AdSenseData | null>(null);
+  const [searchConsoleData, setSearchConsoleData] = useState<SearchConsoleData | null>(null);
 
   useEffect(() => {
     checkConnectionStatus();
@@ -66,10 +47,16 @@ const SupabaseGoogleDashboard = () => {
 
   const checkConnectionStatus = async () => {
     try {
-      // Check if Google services are connected
-      // Replace with actual Supabase check
-      setIsConnected(true); // Mock connection status
+      // Check if Google services are actually connected
+      // For now, show as not connected since we're using mock data
+      setIsConnected(false);
       setIsLoading(false);
+      
+      toast({
+        title: "Notice",
+        description: "Google Services dashboard is currently showing sample data. Please connect your Google services for real data.",
+        variant: "default"
+      });
     } catch (error) {
       console.error('Error checking connection status:', error);
       setIsLoading(false);
@@ -129,75 +116,77 @@ const SupabaseGoogleDashboard = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900">Google Services Dashboard</h2>
-        <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Google Services Dashboard</h2>
+        <Badge className="bg-green-100 text-green-800 hover:bg-green-100 w-fit text-xs sm:text-sm">
           Connected
         </Badge>
       </div>
 
-      <Tabs defaultValue="analytics" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="analytics" className="flex items-center gap-2">
-            <BarChart3 className="w-4 h-4" />
-            Analytics
+      <Tabs defaultValue="analytics" className="space-y-4 sm:space-y-6">
+        <TabsList className="grid w-full grid-cols-3 h-auto">
+          <TabsTrigger value="analytics" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 text-xs sm:text-sm">
+            <BarChart3 className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">Analytics</span>
+            <span className="sm:hidden">Stats</span>
           </TabsTrigger>
-          <TabsTrigger value="adsense" className="flex items-center gap-2">
-            <DollarSign className="w-4 h-4" />
+          <TabsTrigger value="adsense" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 text-xs sm:text-sm">
+            <DollarSign className="w-3 h-3 sm:w-4 sm:h-4" />
             AdSense
           </TabsTrigger>
-          <TabsTrigger value="search-console" className="flex items-center gap-2">
-            <Search className="w-4 h-4" />
-            Search Console
+          <TabsTrigger value="search-console" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 text-xs sm:text-sm">
+            <Search className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">Search Console</span>
+            <span className="sm:hidden">Search</span>
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="analytics" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <TabsContent value="analytics" className="space-y-4 sm:space-y-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4">
             <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Users className="w-4 h-4 text-blue-600" />
-                  <span className="text-sm font-medium text-gray-600">Sessions</span>
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex items-center gap-1 sm:gap-2 mb-2">
+                  <Users className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
+                  <span className="text-xs sm:text-sm font-medium text-gray-600">Sessions</span>
                 </div>
-                <div className="text-2xl font-bold text-gray-900">
+                <div className="text-lg sm:text-2xl font-bold text-gray-900">
                   {analyticsData.sessions.toLocaleString()}
                 </div>
                 <p className="text-xs text-green-600 flex items-center gap-1 mt-1">
-                  <TrendingUp className="w-3 h-3" />
-                  +12.5% from last month
+                  <TrendingUp className="w-2 h-2 sm:w-3 sm:h-3" />
+                  +12.5%
                 </p>
               </CardContent>
             </Card>
 
             <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Users className="w-4 h-4 text-green-600" />
-                  <span className="text-sm font-medium text-gray-600">Users</span>
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex items-center gap-1 sm:gap-2 mb-2">
+                  <Users className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />
+                  <span className="text-xs sm:text-sm font-medium text-gray-600">Users</span>
                 </div>
-                <div className="text-2xl font-bold text-gray-900">
+                <div className="text-lg sm:text-2xl font-bold text-gray-900">
                   {analyticsData.users.toLocaleString()}
                 </div>
                 <p className="text-xs text-green-600 flex items-center gap-1 mt-1">
-                  <TrendingUp className="w-3 h-3" />
-                  +8.3% from last month
+                  <TrendingUp className="w-2 h-2 sm:w-3 sm:h-3" />
+                  +8.3%
                 </p>
               </CardContent>
             </Card>
 
             <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Eye className="w-4 h-4 text-purple-600" />
-                  <span className="text-sm font-medium text-gray-600">Pageviews</span>
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex items-center gap-1 sm:gap-2 mb-2">
+                  <Eye className="w-3 h-3 sm:w-4 sm:h-4 text-purple-600" />
+                  <span className="text-xs sm:text-sm font-medium text-gray-600">Pageviews</span>
                 </div>
-                <div className="text-2xl font-bold text-gray-900">
+                <div className="text-lg sm:text-2xl font-bold text-gray-900">
                   {analyticsData.pageviews.toLocaleString()}
                 </div>
                 <p className="text-xs text-green-600 flex items-center gap-1 mt-1">
-                  <TrendingUp className="w-3 h-3" />
+                  <TrendingUp className="w-2 h-2 sm:w-3 sm:h-3" />
                   +15.7% from last month
                 </p>
               </CardContent>

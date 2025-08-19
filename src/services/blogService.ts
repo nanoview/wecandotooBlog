@@ -740,3 +740,48 @@ export const deleteBlogPost = async (postId: string): Promise<boolean> => {
     throw error;
   }
 };
+
+// Fetch blog posts by tag
+export const fetchBlogPostsByTag = async (tag: string): Promise<BlogPost[]> => {
+  try {
+    console.log('🏷️ Fetching blog posts with tag:', tag);
+    
+    const { data, error } = await supabase
+      .from('blog_posts')
+      .select(`
+        id,
+        slug,
+        title,
+        excerpt,
+        content,
+        featured_image,
+        category,
+        tags,
+        published_at,
+        created_at,
+        author_id,
+        status,
+        profiles!blog_posts_author_id_fkey (
+          username,
+          display_name,
+          avatar_url,
+          bio
+        )
+      `)
+      .eq('status', 'published')
+      .contains('tags', [tag])
+      .order('published_at', { ascending: false });
+
+    if (error) {
+      console.error('❌ Error fetching posts by tag:', error);
+      throw error;
+    }
+
+    console.log('✅ Found posts with tag:', data?.length || 0);
+    
+    return data?.map(transformDatabasePost) || [];
+  } catch (error) {
+    console.error('💥 Fetch posts by tag error:', error);
+    throw error;
+  }
+};

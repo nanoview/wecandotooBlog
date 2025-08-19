@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Search, Calendar, User, Tag, ChevronRight, Star, Loader2, LogIn, PenTool } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,21 +7,24 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import BlogPost from '@/components/BlogPost';
 import CategoryFilter from '@/components/CategoryFilter';
-import GoogleAd from '@/components/GoogleAd';
 import Header from '@/components/navigation/Header';
 import { categories as fallbackCategories } from '@/data/blogData';
 import { useAuth } from '@/hooks/useAuth';
-import { fetchBlogPosts, fetchCategories, searchBlogPosts, fetchBlogPostsByCategory } from '@/services/blogService';
+import { fetchBlogPosts, fetchCategories, searchBlogPosts, fetchBlogPostsByCategory, fetchBlogPostsByTag } from '@/services/blogService';
 import { BlogPost as BlogPostType } from '@/types/blog';
 import { useToast } from '@/hooks/use-toast';
 import BackToTopButton from '@/components/BackToTopButton';
 import Footer from '@/components/Footer';
 import NewsletterSubscription from '@/components/NewsletterSubscription';
 
+// Lazy load non-critical components
+const GoogleAd = lazy(() => import('@/components/GoogleAd'));
+const DeferredComponent = lazy(() => import('@/components/DeferredComponent'));
 
 const Index = () => {
   const { user, userRole, username, signOut, isNanopro } = useAuth();
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // State for dynamic data
   const [blogPosts, setBlogPosts] = useState<BlogPostType[]>([]);
@@ -35,17 +38,31 @@ const Index = () => {
   const isAdmin = userRole === 'admin';
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
   // Load initial data
   useEffect(() => {
     loadInitialData();
   }, []);
 
+  // Handle URL parameters for tag filtering
+  useEffect(() => {
+    const tagFromUrl = searchParams.get('tag');
+    if (tagFromUrl) {
+      setSelectedTag(tagFromUrl);
+      loadBlogPostsByTag(tagFromUrl);
+    } else {
+      setSelectedTag(null);
+    }
+  }, [searchParams]);
+
   // Handle search with debouncing
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (searchTerm.trim()) {
         handleSearch();
+      } else if (selectedTag) {
+        loadBlogPostsByTag(selectedTag);
       } else if (selectedCategory === 'All') {
         loadBlogPosts();
       } else {
@@ -54,9 +71,9 @@ const Index = () => {
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [searchTerm]);
+  }, [searchTerm, selectedTag]);
 
-  const loadInitialData = async () => {
+  const loadInitialData = useCallback(async () => {
     try {
       setLoading(true);
       console.log('🚀 Loading initial data...');
@@ -87,18 +104,37 @@ const Index = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
-  const loadBlogPosts = async () => {
+  const loadBlogPosts = useCallback(async () => {
     try {
       const posts = await fetchBlogPosts();
       setBlogPosts(posts);
     } catch (error) {
       console.error('Error loading blog posts:', error);
     }
-  };
+  }, []);
 
-  const handleSearch = async () => {
+  const loadBlogPostsByTag = useCallback(async (tag: string) => {
+    try {
+      setLoading(true);
+      console.log('🏷️ Loading posts by tag:', tag);
+      const posts = await fetchBlogPostsByTag(tag);
+      setBlogPosts(posts);
+      setCurrentPage(1); // Reset to first page
+    } catch (error) {
+      console.error('Error loading posts by tag:', error);
+      toast({
+        title: "Error",
+        description: `Failed to load posts with tag "${tag}". Please try again.`,
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
+
+  const handleSearch = useCallback(async () => {
     if (!searchTerm.trim()) return;
     
     try {
@@ -116,12 +152,18 @@ const Index = () => {
     } finally {
       setSearchLoading(false);
     }
-  };
+  }, [toast]);
 
-  const handleCategoryChange = async (category: string) => {
+  const handleCategoryChange = useCallback(async (category: string) => {
     console.log(`🏷️ Category changed to: "${category}"`);
     setSelectedCategory(category);
     setCurrentPage(1); // Reset to first page when changing category
+    
+    // Clear tag filter when changing categories
+    if (selectedTag) {
+      setSearchParams({});
+      setSelectedTag(null);
+    }
     
     if (searchTerm.trim()) {
       // If there's a search term, don't change posts yet
@@ -149,7 +191,7 @@ const Index = () => {
         variant: "destructive"
       });
     }
-  };
+  }, [selectedTag, setSearchParams, toast]);
 
   // Filter posts for display (used when searching within a category)
   const filteredPosts = blogPosts.filter(post => {
@@ -353,14 +395,47 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Tag Filter Display */}
+      {selectedTag && (
+        <section className="px-4 py-4">
+          <div className="max-w-6xl mx-auto">
+            <div className="flex items-center gap-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center gap-2">
+                <Tag className="h-4 w-4 text-blue-600" />
+                <span className="text-sm font-medium text-blue-900">
+                  Showing posts tagged with:
+                </span>
+                <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">
+                  #{selectedTag}
+                </Badge>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSearchParams({});
+                  setSelectedTag(null);
+                  loadBlogPosts();
+                }}
+                className="text-blue-600 hover:text-blue-800"
+              >
+                Clear filter
+              </Button>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Blog Posts Grid */}
       <section className="py-12 px-4">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-2xl font-bold text-gray-900">Latest Articles</h3>
-            {searchTerm && (
+            {(searchTerm || selectedTag) && (
               <div className="text-sm text-gray-600">
-                {displayPosts.length} result{displayPosts.length !== 1 ? 's' : ''} for "{searchTerm}"
+                {displayPosts.length} result{displayPosts.length !== 1 ? 's' : ''} 
+                {searchTerm && ` for "${searchTerm}"`}
+                {selectedTag && ` tagged with "${selectedTag}"`}
               </div>
             )}
           </div>
@@ -448,7 +523,9 @@ const Index = () => {
       {/* Ad - Between blog posts and newsletter */}
       <section className="py-8 px-4 bg-gray-50">
         <div className="max-w-6xl mx-auto">
-          <GoogleAd slot="banner" className="flex justify-center" />
+          <Suspense fallback={<div className="h-32 bg-gray-200 animate-pulse rounded"></div>}>
+            <GoogleAd slot="banner" className="flex justify-center" />
+          </Suspense>
         </div>
       </section>
 

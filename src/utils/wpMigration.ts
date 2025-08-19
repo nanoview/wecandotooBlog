@@ -110,18 +110,30 @@ class WordPressMigration {
     }
   }
 
-  // Clean HTML content and convert to markdown-like format
+  // Clean HTML content while preserving important formatting
   cleanContent(htmlContent: string): string {
-    // Remove WordPress-specific shortcodes and clean HTML
+    // Remove WordPress-specific shortcodes and problematic elements
     let cleaned = htmlContent
       .replace(/\[.*?\]/g, '') // Remove shortcodes
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remove scripts
       .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '') // Remove styles
       .replace(/<!--[\s\S]*?-->/g, '') // Remove comments
-      .replace(/<br\s*\/?>/gi, '\n') // Convert <br> to newlines
-      .replace(/<\/p>/gi, '\n\n') // Convert </p> to double newlines
-      .replace(/<p>/gi, '') // Remove <p> tags
-      .replace(/<\/?\w+[^>]*>/g, '') // Remove remaining HTML tags
+      .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '') // Remove iframes
+      .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, '') // Remove objects
+      .replace(/<embed\b[^>]*>/gi, '') // Remove embeds
+      .replace(/<form\b[^<]*(?:(?!<\/form>)<[^<]*)*<\/form>/gi, '') // Remove forms
+      .replace(/<input\b[^>]*>/gi, '') // Remove inputs
+      .replace(/<button\b[^<]*(?:(?!<\/button>)<[^<]*)*<\/button>/gi, '') // Remove buttons
+      
+      // Clean up WordPress-specific classes and attributes while preserving the tags
+      .replace(/\s+class="[^"]*"/gi, '') // Remove class attributes
+      .replace(/\s+id="[^"]*"/gi, '') // Remove id attributes
+      .replace(/\s+style="[^"]*"/gi, '') // Remove inline styles
+      .replace(/\s+data-[^=]*="[^"]*"/gi, '') // Remove data attributes
+      .replace(/\s+onclick="[^"]*"/gi, '') // Remove onclick handlers
+      .replace(/\s+onload="[^"]*"/gi, '') // Remove onload handlers
+      
+      // Decode HTML entities
       .replace(/&nbsp;/g, ' ') // Replace &nbsp; with space
       .replace(/&amp;/g, '&') // Replace &amp; with &
       .replace(/&lt;/g, '<') // Replace &lt; with <
@@ -130,6 +142,13 @@ class WordPressMigration {
       .replace(/&#8217;/g, "'") // Replace smart quotes
       .replace(/&#8220;/g, '"') // Replace smart quotes
       .replace(/&#8221;/g, '"') // Replace smart quotes
+      .replace(/&#8211;/g, '–') // Replace en dash
+      .replace(/&#8212;/g, '—') // Replace em dash
+      .replace(/&#8230;/g, '…') // Replace ellipsis
+      
+      // Clean up excessive whitespace and newlines
+      .replace(/\n\s*\n\s*\n/g, '\n\n') // Replace triple+ newlines with double
+      .replace(/\s+/g, ' ') // Replace multiple spaces with single space
       .trim();
 
     return cleaned;

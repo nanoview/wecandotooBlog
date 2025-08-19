@@ -1,4 +1,4 @@
-import { Mail, MessageSquare, Phone, MapPin } from 'lucide-react';
+import { Mail, MessageSquare, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -98,23 +98,6 @@ const Contact = () => {
               <Card className="hover:shadow-lg transition-shadow">
                 <CardContent className="p-6">
                   <div className="flex items-start space-x-4">
-                    <Phone className="w-8 h-8 text-green-600 mt-1" />
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">Call Us</h3>
-                      <p className="text-gray-600 mb-2">
-                        Monday to Friday, 9 AM to 6 PM EST
-                      </p>
-                      <a href="tel:+1234567890" className="text-green-600 hover:underline">
-                        +1 (234) 567-8900
-                      </a>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="hover:shadow-lg transition-shadow">
-                <CardContent className="p-6">
-                  <div className="flex items-start space-x-4">
                     <MapPin className="w-8 h-8 text-red-600 mt-1" />
                     <div>
                       <h3 className="text-lg font-semibold text-gray-900 mb-2">Visit Us</h3>
@@ -148,7 +131,7 @@ const Contact = () => {
                     <div>
                       <h4 className="font-medium text-gray-900 mb-1">How do I report an issue?</h4>
                       <p className="text-sm text-gray-600">
-                        Use the contact form above or email us directly at support@wecandotoo.com
+                        Use the contact form above or email us directly at arif.js@hotmail.com
                       </p>
                     </div>
                   </div>
