@@ -49,11 +49,11 @@ const MobileNavigation = ({ isOpen, onClose }: MobileNavigationProps) => {
           Contact
         </Link>
         <Link 
-          to="/contact" 
-          className="px-2 py-1 text-gray-700 hover:text-blue-600 font-medium transition-colors"
+          to="/privacy-policy" 
+          className={getLinkClass('/privacy-policy')}
           onClick={onClose}
         >
-          Contact
+          Privacy Policy
         </Link>
         
         {!user ? (

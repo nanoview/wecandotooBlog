@@ -10,6 +10,7 @@ import CategoryFilter from '@/components/CategoryFilter';
 import Header from '@/components/navigation/Header';
 import { categories as fallbackCategories } from '@/data/blogData';
 import { useAuth } from '@/hooks/useAuth';
+import { usePageTracking } from '@/hooks/useVisitorTracking';
 import { fetchBlogPosts, fetchCategories, searchBlogPosts, fetchBlogPostsByCategory, fetchBlogPostsByTag } from '@/services/blogService';
 import { BlogPost as BlogPostType } from '@/types/blog';
 import { useToast } from '@/hooks/use-toast';
@@ -36,6 +37,10 @@ const Index = () => {
 
   // Helper to check if current user is admin
   const isAdmin = userRole === 'admin';
+  
+  // Track homepage visits (don't track admin users)
+  usePageTracking('homepage', '/', !user || userRole !== 'admin');
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
@@ -249,6 +254,17 @@ const Index = () => {
           <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
             Explore thought-provoking articles, tutorials, and insights from our community of writers
           </p>
+          
+          {/* Privacy Policy Link - Prominent for Google Verification */}
+          <div className="mb-6">
+            <Link 
+              to="/privacy-policy" 
+              className="text-blue-600 hover:text-blue-800 underline text-sm font-medium"
+            >
+              Privacy Policy & Terms of Service
+            </Link>
+          </div>
+          
           <div className="relative max-w-md mx-auto">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             {searchLoading && (
@@ -552,6 +568,29 @@ const Index = () => {
       )}
 
       <BackToTopButton />
+      
+      {/* Privacy Policy Link - Required for Google Verification */}
+      <div className="bg-gray-50 border-t py-4 text-center">
+        <div className="max-w-6xl mx-auto px-4">
+          <p className="text-sm text-gray-600">
+            By using this website, you agree to our{' '}
+            <Link 
+              to="/privacy-policy" 
+              className="text-blue-600 hover:text-blue-800 underline font-medium"
+            >
+              Privacy Policy
+            </Link>
+            {' '}and{' '}
+            <Link 
+              to="/privacy-policy" 
+              className="text-blue-600 hover:text-blue-800 underline font-medium"
+            >
+              Terms of Service
+            </Link>
+          </p>
+        </div>
+      </div>
+      
       <Footer />
     </div>
   );

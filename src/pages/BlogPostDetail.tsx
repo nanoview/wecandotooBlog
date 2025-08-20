@@ -17,6 +17,7 @@ import { fetchBlogPost, fetchBlogPostBySlug, fetchBlogPostsByCategory } from '@/
 import { BlogPost as BlogPostType } from '@/types/blog';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { useVisitorTracking } from '@/hooks/useVisitorTracking';
 
 const BlogPostDetail = () => {
   const { id, slug } = useParams();
@@ -28,6 +29,14 @@ const BlogPostDetail = () => {
   const [contentLoading, setContentLoading] = useState(true);
   const [relatedLoading, setRelatedLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+
+  // Initialize visitor tracking for this blog post
+  const { sessionId } = useVisitorTracking({
+    postId: post?.id,
+    postSlug: post?.slug || slug,
+    postTitle: post?.title,
+    isActive: !user || userRole !== 'admin' // Don't track admin users
+  });
 
   useEffect(() => {
     const identifier = slug || id;

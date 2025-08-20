@@ -38,6 +38,9 @@ const Footer = () => {
               <Link to="/contact" className="block text-gray-300 hover:text-blue-400 transition-colors text-sm">
                 Contact
               </Link>
+              <Link to="/privacy-policy" className="block text-gray-300 hover:text-blue-400 transition-colors text-sm">
+                Privacy Policy
+              </Link>
               {(userRole === 'admin' || userRole === 'editor') && (
                 <Link to="/write" className="block text-gray-300 hover:text-blue-400 transition-colors text-sm">
                   Write
@@ -87,10 +90,21 @@ const Footer = () => {
           </div>
         </div>
 
-        <div className="border-t border-gray-800 mt-8 pt-8 text-center">
-          <p className="text-gray-400 text-sm">
-            © 2025 wecandotoo. All rights reserved.
-          </p>
+        <div className="border-t border-gray-800 mt-8 pt-8">
+          <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+            <p className="text-gray-400 text-sm">
+              © 2025 wecandotoo. All rights reserved.
+            </p>
+            <div className="flex items-center space-x-4 text-sm">
+              <Link to="/privacy-policy" className="text-gray-300 hover:text-blue-400 transition-colors">
+                Privacy Policy
+              </Link>
+              <span className="text-gray-600">•</span>
+              <Link to="/contact" className="text-gray-300 hover:text-blue-400 transition-colors">
+                Contact Us
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     </footer>

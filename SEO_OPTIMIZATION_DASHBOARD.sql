@@ -196,7 +196,12 @@ BEGIN
         'content_improvements', improvements,
         'overall_recommendations', recommendations,
         'priority_level', post_data.optimization_priority,
-        'effort_level', post_data.effort_level,
+        'effort_level', CASE 
+            WHEN post_data.seo_score < 40 THEN 'High effort needed'
+            WHEN post_data.seo_score < 65 THEN 'Medium effort needed'
+            WHEN post_data.seo_score < 80 THEN 'Quick fixes needed'
+            ELSE 'Minor tweaks needed'
+        END,
         'generated_at', CURRENT_TIMESTAMP
     );
 END;

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, MessageSquare, Shield, Settings, LogOut, BarChart3, FileText, Edit, Trash2, Plus, Eye, Mail, Search, Database } from 'lucide-react';
+import { Users, MessageSquare, Shield, Settings, LogOut, BarChart3, FileText, Edit, Trash2, Plus, Eye, Mail, Search, Database, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +24,7 @@ const UserManagement = lazy(() => import('@/components/admin/UserManagement'));
 const ZohoMailChecker = lazy(() => import('@/components/admin/ZohoMailChecker'));
 const SEOUtilities = lazy(() => import('@/components/admin/SEOUtilities'));
 const DatabaseViewer = lazy(() => import('@/components/admin/DatabaseViewer'));
+const VisitorAnalytics = lazy(() => import('@/components/admin/VisitorAnalytics'));
 
 interface Profile {
   id: string;
@@ -385,7 +386,7 @@ const Admin = () => {
         <Tabs defaultValue="overview" className="space-y-6">
           {/* Mobile-friendly tab list with responsive layout */}
           <div className="w-full">
-            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-9 gap-1 h-auto p-1">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-10 gap-1 h-auto p-1">
               <TabsTrigger value="overview" className="flex-col sm:flex-row h-auto py-2 px-2 text-xs sm:text-sm">
                 <Shield className="w-3 h-3 sm:w-4 sm:h-4 mb-1 sm:mb-0 sm:mr-2" />
                 <span className="hidden sm:inline">Overview</span>
@@ -395,6 +396,11 @@ const Admin = () => {
                 <FileText className="w-3 h-3 sm:w-4 sm:h-4 mb-1 sm:mb-0 sm:mr-2" />
                 <span className="hidden sm:inline">Blog Posts</span>
                 <span className="sm:hidden">Posts</span>
+              </TabsTrigger>
+              <TabsTrigger value="analytics" className="flex-col sm:flex-row h-auto py-2 px-2 text-xs sm:text-sm">
+                <Activity className="w-3 h-3 sm:w-4 sm:h-4 mb-1 sm:mb-0 sm:mr-2" />
+                <span className="hidden sm:inline">Visitor Analytics</span>
+                <span className="sm:hidden">Analytics</span>
               </TabsTrigger>
               <TabsTrigger value="users" className="flex-col sm:flex-row h-auto py-2 px-2 text-xs sm:text-sm">
                 <Users className="w-3 h-3 sm:w-4 sm:h-4 mb-1 sm:mb-0 sm:mr-2" />
@@ -450,6 +456,12 @@ const Admin = () => {
                 togglePostStatus={togglePostStatus}
                 deleteBlogPost={deleteBlogPost}
               />
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="analytics" className="space-y-6">
+            <Suspense fallback={<LoadingSkeleton />}>
+              <VisitorAnalytics />
             </Suspense>
           </TabsContent>
 
