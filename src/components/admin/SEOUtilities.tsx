@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import AISEOOptimizer from '@/components/admin/AISEOOptimizer';
+import SEOOptimizationDashboard from '@/components/admin/SEOOptimizationDashboard';
 
 const SEOUtilities: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -214,7 +214,7 @@ const SEOUtilities: React.FC = () => {
             <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="ai-seo" className="flex items-center gap-2 text-xs">
                 <Brain className="w-3 h-3" />
-                AI SEO
+                SEO Dashboard
               </TabsTrigger>
               <TabsTrigger value="live-rss" className="flex items-center gap-2 text-xs">
                 <Download className="w-3 h-3" />
@@ -235,7 +235,7 @@ const SEOUtilities: React.FC = () => {
             </TabsList>
 
             <TabsContent value="ai-seo" className="space-y-4">
-              <AISEOOptimizer />
+              <SEOOptimizationDashboard />
             </TabsContent>
 
             <TabsContent value="live-rss" className="space-y-4">
