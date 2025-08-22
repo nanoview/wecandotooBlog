@@ -59,8 +59,9 @@ client_secret_*.json
 *.sw?
 client.ts
 
-# Documentation and SQL files
+# Documentation and SQL files (except README.md)
 *.md
+!README.md
 *.sql
 
 # Test files with sensitive data
