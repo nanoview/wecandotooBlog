@@ -13,12 +13,12 @@ const ArifulPortfolio: React.FC = () => {
     name: 'Ariful Islam',
     title: 'ICT Professional',
     location: 'Opastinsilta 1 B 33, 00520 Helsinki',
-    avatarUrl: 'https://github.com/shadcn.png', // Replace with your image URL
+    avatarUrl: '/ariful-photo.jpg',
     initials: 'AI',
     bio: "Motivated ICT professional with hands-on experience in IT support, troubleshooting, and customer-focused solutions. Skilled in operating systems, networks, and web basics, with a strong interest in SaaS and AI solutions. Completed Microsoft Azure Fundamentals (AZ-900T01) at Metropolia. Eager to learn new technologies and contribute to customer success.",
     contact: {
       email: 'arif.js@gmail.com',
-      phone: '040 3781793',
+      phone: '+358403781793',
       linkedin: 'https://www.linkedin.com/in/ariful-802is11/',
       github: 'https://github.com/nanoview',
     },
@@ -35,7 +35,7 @@ const ArifulPortfolio: React.FC = () => {
     ],
     projects: [
       {
-        title: 'Stellar Content Stream - wecandotoo.com',
+        title: 'Content Stream - wecandotoo.com',
         description: 'A full-featured content management system and blog platform with advanced SEO automation, visitor analytics, and a comprehensive admin dashboard. Built with Vite, React, TypeScript, and Supabase.',
         tags: ['React', 'Supabase', 'TypeScript', 'Vite', 'Edge Functions'],
         liveUrl: 'https://wecandotoo.com',
@@ -119,12 +119,12 @@ const ArifulPortfolio: React.FC = () => {
             <h1 className="text-4xl font-bold text-gray-900">{portfolioData.name}</h1>
             <p className="text-xl text-blue-600 font-medium">{portfolioData.title}</p>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 text-sm text-gray-500">
-              <span className="flex items-center">
+              <a href={`mailto:${portfolioData.contact.email}`} className="flex items-center hover:text-blue-600 transition-colors">
                 <Mail className="w-4 h-4 mr-1" /> {portfolioData.contact.email}
-              </span>
-               <span className="flex items-center">
+              </a>
+              <a href={`https://wa.me/${portfolioData.contact.phone.replace(/\s+/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center hover:text-blue-600 transition-colors">
                 <Phone className="w-4 h-4 mr-1" /> {portfolioData.contact.phone}
-              </span>
+              </a>
               <a href={portfolioData.contact.linkedin} target="_blank" rel="noopener noreferrer" className="flex items-center hover:text-blue-600 transition-colors">
                 <Linkedin className="w-4 h-4 mr-1" /> LinkedIn
               </a>
