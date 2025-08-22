@@ -115,12 +115,11 @@ const Admin = () => {
       
       // Use Promise.all to fetch data in parallel with proper joins
       const [profilesResult, commentsResult, postsResult] = await Promise.all([
-        // Fetch profiles with roles in a single query
+        // Fetch profiles and roles separately to avoid relationship issues
         supabase
           .from('profiles')
           .select(`
-            id, user_id, username, display_name, created_at,
-            user_roles(role)
+            id, user_id, username, display_name, created_at
           `)
           .order('created_at', { ascending: false })
           .limit(50), // Limit initial load
@@ -147,14 +146,25 @@ const Admin = () => {
           .limit(50) // Limit initial load
       ]);
 
-      // Process profiles data
+      // Process profiles data and fetch roles separately
       if (profilesResult.data) {
-        const processedProfiles = profilesResult.data.map(profile => ({
-          ...profile,
-          user_roles: profile.user_roles && profile.user_roles.length > 0 
-            ? profile.user_roles 
-            : [{ role: 'user' }]
-        }));
+        // Fetch roles for all profiles
+        const { data: rolesData } = await supabase
+          .from('user_roles')
+          .select('user_id, role');
+
+        const processedProfiles = profilesResult.data.map(profile => {
+          // Find roles for this user
+          const userRoles = rolesData?.filter(role => 
+            role.user_id === profile.user_id || 
+            role.user_id === profile.user_id?.toString()
+          ) || [];
+          
+          return {
+            ...profile,
+            user_roles: userRoles.length > 0 ? userRoles : [{ role: 'user' }]
+          };
+        });
         setProfiles(processedProfiles);
       }
 

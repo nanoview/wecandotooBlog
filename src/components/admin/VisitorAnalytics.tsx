@@ -108,21 +108,44 @@ export default function VisitorAnalytics() {
 
       if (sessionsError) throw sessionsError;
 
-      // Fetch post impressions with blog post details
+      // Fetch post impressions (without join to avoid relationship issues)
       const { data: impressions, error: impressionsError } = await supabase
         .from('post_impressions')
-        .select(`
-          *,
-          blog_posts (
-            title,
-            slug
-          )
-        `)
+        .select('*')
         .gte('timestamp', startDate.toISOString())
         .order('timestamp', { ascending: false })
         .limit(200);
 
       if (impressionsError) throw impressionsError;
+
+      // Fetch blog posts separately and join in JavaScript
+      let impressionsWithPosts = impressions || [];
+      if (impressions && impressions.length > 0) {
+        const uniqueSlugs = [...new Set(impressions.map(imp => imp.post_slug).filter(Boolean))];
+        const uniqueIds = [...new Set(impressions.map(imp => imp.post_id).filter(Boolean))];
+        
+        // Fetch blog posts by slug and id
+        const { data: blogPosts } = await supabase
+          .from('blog_posts')
+          .select('id, title, slug')
+          .or(`slug.in.(${uniqueSlugs.map(s => `"${s}"`).join(',')}),id.in.(${uniqueIds.join(',')})`);
+
+        // Join the data in JavaScript
+        impressionsWithPosts = impressions.map(impression => {
+          const blogPost = blogPosts?.find(post => 
+            post.slug === impression.post_slug || 
+            post.id === impression.post_id
+          );
+          
+          return {
+            ...impression,
+            blog_posts: blogPost ? {
+              title: blogPost.title,
+              slug: blogPost.slug
+            } : null
+          };
+        });
+      }
 
       // Fetch analytics summary
       const { data: summary, error: summaryError } = await supabase
@@ -135,7 +158,7 @@ export default function VisitorAnalytics() {
       if (summaryError) throw summaryError;
 
       setVisitorSessions(sessions || []);
-      setPostImpressions(impressions || []);
+      setPostImpressions(impressionsWithPosts || []);
       setAnalyticsSummary(summary || []);
 
     } catch (error: any) {

@@ -58,3 +58,7 @@ client_secret_*.json
 *.sln
 *.sw?
 client.ts
+
+# Documentation and SQL files
+*.md
+*.sql

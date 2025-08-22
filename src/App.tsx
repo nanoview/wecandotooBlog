@@ -30,6 +30,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import RSSFeed from "./pages/RSSFeed";
 import SitemapXML from "./pages/SitemapXML";
 import CookieConsentBanner from "@/components/CookieConsentBanner";
+import ArifulPortfolio from "./pages/ArifulPortfolio";
 
 const queryClient = new QueryClient();
 
@@ -69,6 +70,7 @@ const App = () => (
             <Route path="/feed.xml" element={<RSSFeed />} />
             <Route path="/rss.xml" element={<RSSFeed />} />
             <Route path="/sitemap.xml" element={<SitemapXML />} />
+            <Route path="/ariful" element={<ArifulPortfolio />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <CookieConsentBanner />
