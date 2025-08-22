@@ -68,3 +68,31 @@ CONSOLE_TEST_ANALYTICS.js
 TEST_SPECIFIC_QUERY.js
 test-visitor-function.js
 test-mobile-ip.js
+
+# Test and debug files
+test-*.js
+test-*.html
+*-test.*
+TEST_*.js
+debug-*.sql
+debug-*.js
+
+# Setup and configuration scripts
+setup-*.js
+populate-*.js
+save-*.js
+simple-*.js
+
+# Emergency and cleanup scripts
+emergency-*.*
+cleanup-*.*
+
+# OAuth test files
+oauth-test.html
+
+# Temporary files
+visitor-analytics-test.html
+
+# PowerShell cleanup scripts (keep sync-functions.ps1)
+cleanup-*.ps1
+emergency-*.ps1
