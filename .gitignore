@@ -62,3 +62,9 @@ client.ts
 # Documentation and SQL files
 *.md
 *.sql
+
+# Test files with sensitive data
+CONSOLE_TEST_ANALYTICS.js
+TEST_SPECIFIC_QUERY.js
+test-visitor-function.js
+test-mobile-ip.js
