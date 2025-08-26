@@ -156,6 +156,62 @@ FOR SELECT USING (
 );
 
 -- ============================================================================
+-- 2.5. FIX MISSING COLUMNS THAT CAUSE ERRORS
+-- ============================================================================
+
+-- Add missing columns to post_impressions table
+DO $$
+BEGIN
+    -- Add missing tracking columns to post_impressions
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'post_impressions' AND column_name = 'ip_address' AND table_schema = 'public') THEN
+        ALTER TABLE public.post_impressions ADD COLUMN ip_address INET;
+        RAISE NOTICE 'Added ip_address column to post_impressions';
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'post_impressions' AND column_name = 'user_agent' AND table_schema = 'public') THEN
+        ALTER TABLE public.post_impressions ADD COLUMN user_agent TEXT;
+        RAISE NOTICE 'Added user_agent column to post_impressions';
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'post_impressions' AND column_name = 'referrer' AND table_schema = 'public') THEN
+        ALTER TABLE public.post_impressions ADD COLUMN referrer TEXT;
+        RAISE NOTICE 'Added referrer column to post_impressions';
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'post_impressions' AND column_name = 'session_id' AND table_schema = 'public') THEN
+        ALTER TABLE public.post_impressions ADD COLUMN session_id TEXT;
+        RAISE NOTICE 'Added session_id column to post_impressions';
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'post_impressions' AND column_name = 'user_id' AND table_schema = 'public') THEN
+        ALTER TABLE public.post_impressions ADD COLUMN user_id UUID REFERENCES auth.users(id);
+        RAISE NOTICE 'Added user_id column to post_impressions';
+    END IF;
+    
+    -- Add missing role column to profiles table
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'profiles' AND column_name = 'role' AND table_schema = 'public') THEN
+        ALTER TABLE public.profiles ADD COLUMN role TEXT DEFAULT 'user' 
+        CHECK (role IN ('user', 'author', 'editor', 'admin', 'super_admin'));
+        RAISE NOTICE 'Added role column to profiles';
+    END IF;
+    
+    -- Add missing user_id column to profiles if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'profiles' AND column_name = 'user_id' AND table_schema = 'public') THEN
+        ALTER TABLE public.profiles ADD COLUMN user_id UUID REFERENCES auth.users(id);
+        RAISE NOTICE 'Added user_id column to profiles';
+    END IF;
+    
+    RAISE NOTICE 'All missing columns have been added!';
+END $$;
+
+-- ============================================================================
 -- 3. PROTECT VISITOR PRIVACY DATA (GDPR/Privacy Compliance)
 -- ============================================================================
 
