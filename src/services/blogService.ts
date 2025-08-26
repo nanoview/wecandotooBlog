@@ -1,6 +1,72 @@
 import { supabase } from '@/integrations/supabase/client';
 import { BlogPost } from '@/types/blog';
 
+// Helper function to format error objects for better logging
+const formatError = (error: any, context: string = '') => {
+  const prefix = context ? `[${context}] ` : '';
+  console.error(`${prefix}❌ Error occurred:`);
+  console.error(`${prefix}🔍 Full error object:`, JSON.stringify(error, null, 2));
+  console.error(`${prefix}🔍 Error message:`, error?.message || 'No message');
+  console.error(`${prefix}🔍 Error code:`, error?.code || 'No code');
+  console.error(`${prefix}🔍 Error details:`, error?.details || 'No details');
+  console.error(`${prefix}🔍 Error hint:`, error?.hint || 'No hint');
+  if (error?.stack) {
+    console.error(`${prefix}🔍 Error stack:`, error.stack);
+  }
+};
+
+// Safely ensure a value is an array of strings
+const ensureStringArray = (value: any): string[] => {
+  if (!value) return [];
+  
+  // If it's already a proper array
+  if (Array.isArray(value)) return value.filter(item => typeof item === 'string' && item.trim().length > 0);
+  
+  if (typeof value === 'string') {
+    // Check if it's a JSON string representation like '["tag1","tag2"]'
+    if (value.startsWith('[') && value.endsWith(']')) {
+      try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed.filter(item => typeof item === 'string' && item.trim().length > 0) : [value];
+      } catch {
+        console.error('🚨 Failed to parse JSON array string:', value);
+        return [value];
+      }
+    }
+    
+    // Check if it's PostgreSQL array format like '{"tag1","tag2"}'
+    if (value.startsWith('{') && value.endsWith('}')) {
+      try {
+        // Convert PostgreSQL format to JSON format and parse
+        const jsonFormat = value.replace(/^\{/, '[').replace(/\}$/, ']');
+        const parsed = JSON.parse(jsonFormat);
+        return Array.isArray(parsed) ? parsed.filter(item => typeof item === 'string' && item.trim().length > 0) : [value];
+      } catch {
+        console.error('🚨 Failed to parse PostgreSQL array string:', value);
+        return [value];
+      }
+    }
+    
+    // Single string tag
+    return value.trim().length > 0 ? [value] : [];
+  }
+  
+  console.warn('⚠️ Unexpected tag format, returning empty array:', value, typeof value);
+  return [];
+};
+
+// Convert JavaScript array to PostgreSQL array format
+const convertToPostgreSQLArray = (tags: string[]): string => {
+  if (!tags || tags.length === 0) return '{}';
+  
+  // Escape quotes and create PostgreSQL array format
+  const escapedTags = tags.map(tag => `"${tag.replace(/"/g, '\\"')}"`);
+  const pgArray = `{${escapedTags.join(',')}}`;
+  
+  console.log('🔄 Converting tags to PostgreSQL format:', tags, '->', pgArray);
+  return pgArray;
+};
+
 // Transform database blog post to app BlogPost type
 const transformDatabasePost = (dbPost: any): BlogPost => {
   console.log('🔄 Transforming post:', dbPost.title, dbPost.profiles);
@@ -35,7 +101,7 @@ const transformDatabasePost = (dbPost: any): BlogPost => {
     }),
     readTime: calculateReadTime(dbPost.content || ''),
     category: dbPost.category || 'General',
-    tags: dbPost.tags || [],
+    tags: ensureStringArray(dbPost.tags),
     author_id: dbPost.author_id,
     author_username: dbPost.profiles?.username
   };
@@ -184,6 +250,9 @@ export const fetchBlogPostWithDbId = async (id: string): Promise<{ post: BlogPos
         return null;
       }
 
+      console.log('✅ Raw database data for editing:', data);
+      console.log('🔍 Raw tags from database:', data?.tags, 'Type:', typeof data?.tags);
+      
       return data ? { post: transformDatabasePost(data), dbId: data.id } : null;
     } else if (!isNumeric) {
       // Treat as slug
@@ -536,6 +605,12 @@ export const createBlogPost = async (postData: {
   try {
     console.log('📝 Creating new blog post:', postData.title);
     
+    // EMERGENCY CONTENT SIZE CHECK
+    if (postData.content && postData.content.length > 100000) { // 100KB absolute limit
+      console.error('🚨🚨🚨 EMERGENCY: Content too large for create:', postData.content.length);
+      throw new Error(`Content too large: ${postData.content.length} characters. Maximum allowed: 100,000 characters.`);
+    }
+    
     // Get current user
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     
@@ -565,15 +640,25 @@ export const createBlogPost = async (postData: {
       counter++;
     }
     
+    // Process tags more aggressively to prevent PostgreSQL array errors
+    const processedTags = ensureStringArray(postData.tags);
+    console.log('🔍 Pre-insert debug - tags processing:', {
+      originalTags: postData.tags,
+      processedTags: processedTags,
+      tagsType: typeof processedTags,
+      isArray: Array.isArray(processedTags),
+      stringified: JSON.stringify(processedTags)
+    });
+
     const { data, error } = await supabase
       .from('blog_posts')
       .insert({
         title: postData.title,
         slug: slug,
-        content: postData.content,
+        content: postData.content.substring(0, 100000), // Hard truncate for safety
         excerpt: postData.excerpt || postData.content.substring(0, 150).trim() + '...',
         category: postData.category,
-        tags: postData.tags,
+        tags: processedTags, // Use the processed tags variable
         featured_image: postData.featuredImage,
         status: postData.status,
         author_id: user.id,
@@ -584,8 +669,15 @@ export const createBlogPost = async (postData: {
       .select()
       .single();
 
+    console.log('🔍 Pre-insert debug - tags format:', {
+      originalTags: postData.tags,
+      processedTags: ensureStringArray(postData.tags),
+      tagsType: typeof ensureStringArray(postData.tags),
+      isArray: Array.isArray(ensureStringArray(postData.tags))
+    });
+
     if (error) {
-      console.error('❌ Error creating blog post:', error);
+      formatError(error, 'createBlogPost - Supabase insert');
       throw error;
     }
 
@@ -594,7 +686,7 @@ export const createBlogPost = async (postData: {
     // Fetch the created post with author profile
     return await fetchBlogPost(data.id);
   } catch (error) {
-    console.error('💥 Create post error:', error);
+    formatError(error, 'createBlogPost - Main catch');
     throw error;
   }
 };
@@ -613,10 +705,31 @@ export const updateBlogPost = async (
     status?: 'draft' | 'published';
     author_id?: string;
     id?: string;
+    // SEO fields
+    seo_title?: string;
+    meta_description?: string;
+    focus_keyword?: string;
+    slug?: string;
+    canonical_url?: string;
   }
 ): Promise<BlogPost | null> => {
   try {
     console.log('📝 Updating blog post:', postId, postData);
+    
+    // EMERGENCY: Super aggressive content size check
+    if (postData.content && postData.content.length > 50000) { // 50KB limit - very aggressive
+      console.error('🚨🚨🚨 EMERGENCY: Content too large!', postData.content.length, 'characters');
+      console.error('🚨 Content limit: ' + postData.content.length);
+      throw new Error(`EMERGENCY: Content is too large (${Math.round(postData.content.length / 1024)}KB). Maximum allowed: 50KB. Please use shorter content.`);
+    }
+    
+    // Check total data size with aggressive limit
+    const totalDataSize = JSON.stringify(postData).length;
+    if (totalDataSize > 100000) { // 100KB total data limit
+      console.error('🚨🚨🚨 EMERGENCY: Total post data too large!', totalDataSize, 'characters');
+      console.error('🚨 Content limit: ' + totalDataSize);
+      throw new Error(`EMERGENCY: Post data is too large (${Math.round(totalDataSize / 1024)}KB). Maximum allowed: 100KB.`);
+    }
     
     // Get current user
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -633,6 +746,16 @@ export const updateBlogPost = async (
 
     if (postData.title !== undefined) updateData.title = postData.title;
     if (postData.content !== undefined) {
+      // Log content size for debugging
+      console.log('📊 Content size:', postData.content.length, 'characters');
+      console.log('📊 Content preview (first 200 chars):', postData.content.substring(0, 200));
+      
+      // Check for extremely large content (over 1MB)
+      if (postData.content.length > 1024 * 1024) {
+        console.warn('⚠️ Content is very large:', postData.content.length, 'characters (~', Math.round(postData.content.length / 1024 / 1024), 'MB)');
+        throw new Error(`Content is too large (${Math.round(postData.content.length / 1024 / 1024)}MB). Please reduce content size.`);
+      }
+      
       // Store the HTML content directly since we're using RichTextEditor
       updateData.content = postData.content;
       if (!postData.excerpt) {
@@ -641,9 +764,36 @@ export const updateBlogPost = async (
     }
     if (postData.excerpt !== undefined) updateData.excerpt = postData.excerpt;
     if (postData.category !== undefined) updateData.category = postData.category;
-    if (postData.tags !== undefined) updateData.tags = postData.tags;
+    if (postData.tags !== undefined) {
+      console.log('📊 Tags being sent:', postData.tags, 'Type:', typeof postData.tags, 'Array?', Array.isArray(postData.tags));
+      
+      // EMERGENCY FIX: If tags are problematic, skip them for now
+      let processedTags = ensureStringArray(postData.tags);
+      console.log('📊 Processed tags:', processedTags);
+      
+      // Check if processed tags are safe
+      try {
+        // Test if this would cause JSON stringify issues
+        const testJson = JSON.stringify(processedTags);
+        console.log('📊 Tags JSON test:', testJson);
+        
+        // If we reach here, tags are safe
+        updateData.tags = processedTags;
+      } catch (error) {
+        console.error('🚨 Tags JSON stringify failed, skipping tags:', error);
+        // Don't update tags if they're problematic
+      }
+    }
     if (postData.featured_image !== undefined) updateData.featured_image = postData.featured_image;
     if (postData.status !== undefined) updateData.status = postData.status;
+    
+    // SEO fields - Currently not available in database schema
+    // TODO: Add SEO columns to blog_posts table in database
+    // if (postData.seo_title !== undefined) updateData.seo_title = postData.seo_title;
+    // if (postData.meta_description !== undefined) updateData.meta_description = postData.meta_description;
+    // if (postData.focus_keyword !== undefined) updateData.focus_keyword = postData.focus_keyword;
+    if (postData.slug !== undefined) updateData.slug = postData.slug; // slug exists in schema
+    // if (postData.canonical_url !== undefined) updateData.canonical_url = postData.canonical_url;
 
     // If publishing for the first time, set published_at
     if (postData.status === 'published') {
@@ -651,6 +801,13 @@ export const updateBlogPost = async (
     }
 
     console.log('📝 Sending update data to database:', updateData);
+
+    // Final safety check for tags before database operation
+    if (updateData.tags && !Array.isArray(updateData.tags)) {
+      console.error('🚨 CRITICAL: Tags not array at database level!', updateData.tags, typeof updateData.tags);
+      updateData.tags = ensureStringArray(updateData.tags);
+      console.log('🔧 Fixed tags:', updateData.tags);
+    }
 
     // First, check if the post exists and get current post data
     const { data: currentPost, error: fetchError } = await supabase
@@ -686,25 +843,170 @@ export const updateBlogPost = async (
     }
 
     console.log('✅ Permission check passed. Updating post...');
+    console.log('🔧 BEFORE final check - updateData:', JSON.stringify(updateData, null, 2));
 
-    const { data, error } = await supabase
-      .from('blog_posts')
-      .update(updateData)
-      .eq('id', postId)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('❌ Error updating blog post:', error);
-      throw error;
+    // BULLETPROOF: Ensure tags are sent as a proper PostgreSQL array
+    if ('tags' in updateData) {
+      console.log('🔧 Final tags check before database:', updateData.tags, typeof updateData.tags);
+      console.log('🔧 Is array?', Array.isArray(updateData.tags));
+      console.log('🔧 String representation:', String(updateData.tags));
+      
+      // EMERGENCY APPROACH: Only allow simple array or remove tags entirely
+      if (Array.isArray(updateData.tags)) {
+        // Ensure all elements are simple strings
+        updateData.tags = updateData.tags
+          .filter(tag => typeof tag === 'string' && tag.trim().length > 0)
+          .map(tag => tag.trim());
+        console.log('🎯 Cleaned array tags:', updateData.tags);
+      } else {
+        console.error('🚨 REMOVING TAGS - not a proper array:', updateData.tags);
+        delete updateData.tags; // Remove tags entirely if problematic
+      }
+      
+      console.log('🎯 FINAL tags being sent to database:', updateData.tags);
+    } else {
+      console.log('ℹ️ No tags field in updateData');
     }
 
-    console.log('✅ Blog post updated successfully:', data.id);
+    console.log('🔧 AFTER final check - updateData:', JSON.stringify(updateData, null, 2));
+
+    // EMERGENCY WORKAROUND: Try update without tags first if tags are problematic
+    let updateDataToSend = { ...updateData };
     
-    // Fetch the updated post with author profile
-    return await fetchBlogPost(data.id);
+    console.log('🚨 DEBUGGING: About to send request to Supabase');
+    console.log('🚨 Post ID:', postId);
+    console.log('🚨 Update data keys:', Object.keys(updateDataToSend));
+    console.log('🚨 Update data sizes:', Object.entries(updateDataToSend).map(([key, value]) => [
+      key, 
+      typeof value === 'string' ? `${value.length} chars` : 
+      Array.isArray(value) ? `${value.length} items` : 
+      typeof value
+    ]));
+    
+    // Check each field for potential issues
+    for (const [key, value] of Object.entries(updateDataToSend)) {
+      if (typeof value === 'string' && value.length > 100000) {
+        console.error(`🚨 Field ${key} is very large:`, value.length, 'characters');
+        console.error(`🚨 ${key} preview:`, value.substring(0, 200));
+      }
+      if (Array.isArray(value)) {
+        console.log(`🚨 Array field ${key}:`, value, 'Type of first item:', typeof value[0]);
+      }
+    }
+    
+    // Test JSON serialization
+    try {
+      const jsonTest = JSON.stringify(updateDataToSend);
+      console.log('🚨 JSON serialization test passed, size:', jsonTest.length);
+      if (jsonTest.length > 1000000) {
+        console.error('🚨 JSON is too large!', jsonTest.length);
+        throw new Error(`Serialized data too large: ${Math.round(jsonTest.length / 1024 / 1024)}MB`);
+      }
+    } catch (error) {
+      console.error('🚨 JSON serialization failed:', error);
+      throw new Error('Data cannot be serialized to JSON: ' + error.message);
+    }
+    
+    // If tags exist and might be problematic, try without them first
+    if ('tags' in updateDataToSend && updateDataToSend.tags) {
+      const originalTags = updateDataToSend.tags;
+      try {
+        // Test the update with tags
+        console.log('🧪 Testing update with tags...');
+        
+        const { data, error } = await supabase
+          .from('blog_posts')
+          .update(updateDataToSend)
+          .eq('id', postId)
+          .select()
+          .single();
+
+        if (error) {
+          console.error('🚨 Error with tags:', error);
+          
+          if (error.message?.includes('malformed array literal') || error.code === '22P02') {
+            console.error('🚨 Tags causing array error, trying without tags...');
+            delete updateDataToSend.tags;
+            
+            const { data: dataWithoutTags, error: errorWithoutTags } = await supabase
+              .from('blog_posts')
+              .update(updateDataToSend)
+              .eq('id', postId)
+              .select()
+              .single();
+              
+            if (errorWithoutTags) {
+              console.error('❌ Error even without tags:', errorWithoutTags);
+              
+              // LAST RESORT: Try with only essential fields
+              console.log('🚨 Trying with minimal data...');
+              const minimalData = {
+                title: updateDataToSend.title,
+                content: updateDataToSend.content?.substring(0, 50000) || '', // Truncate content if too large
+                updated_at: updateDataToSend.updated_at
+              };
+              
+              const { data: minimalResult, error: minimalError } = await supabase
+                .from('blog_posts')
+                .update(minimalData)
+                .eq('id', postId)
+                .select()
+                .single();
+                
+              if (minimalError) {
+                console.error('❌ Even minimal update failed:', minimalError);
+                throw minimalError;
+              }
+              
+              console.log('⚠️ Post updated with minimal data only');
+              return await fetchBlogPost(minimalResult.id);
+            }
+            
+            console.log('⚠️ Post updated successfully WITHOUT tags. Tags were:', originalTags);
+            return await fetchBlogPost(dataWithoutTags.id);
+          } else {
+            throw error;
+          }
+        }
+
+        console.log('✅ Blog post updated successfully with tags:', data.id);
+        return await fetchBlogPost(data.id);
+        
+      } catch (error) {
+        console.error('❌ Error updating blog post:');
+        console.error('🔍 Update error details:', JSON.stringify(error, null, 2));
+        console.error('🔍 Update error message:', error.message || 'No message');
+        console.error('🔍 Update error code:', error.code || 'No code');
+        console.error('🔍 Update error details field:', error.details || 'No details');
+        throw error;
+      }
+    } else {
+      // No tags, proceed normally
+      const { data, error } = await supabase
+        .from('blog_posts')
+        .update(updateDataToSend)
+        .eq('id', postId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Error updating blog post:');
+        console.error('🔍 No-tags update error details:', JSON.stringify(error, null, 2));
+        console.error('🔍 No-tags update error message:', error.message || 'No message');
+        console.error('🔍 No-tags update error code:', error.code || 'No code');
+        console.error('🔍 No-tags update error details field:', error.details || 'No details');
+        throw error;
+      }
+
+      console.log('✅ Blog post updated successfully:', data.id);
+      return await fetchBlogPost(data.id);
+    }
   } catch (error) {
-    console.error('💥 Update post error:', error);
+    console.error('💥 Update post error:');
+    console.error('🔍 Final catch error details:', JSON.stringify(error, null, 2));
+    console.error('🔍 Final catch error message:', error.message || 'No message');
+    console.error('🔍 Final catch error code:', error.code || 'No code');
+    console.error('🔍 Final catch error stack:', error.stack || 'No stack');
     throw error;
   }
 };

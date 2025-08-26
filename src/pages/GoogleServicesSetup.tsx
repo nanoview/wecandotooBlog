@@ -281,6 +281,93 @@ const GoogleServicesSetup: React.FC = () => {
           )}
         </div>
 
+        {/* SEO Content Creation */}
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Search className="w-5 h-5" />
+              SEO Content Creation
+            </CardTitle>
+            <CardDescription>
+              Generate 90%+ SEO-friendly blog posts with AI assistance
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <p className="text-gray-600">
+                Need help creating SEO-optimized content? Get a perfectly crafted prompt for ChatGPT that will help you write high-ranking blog posts.
+              </p>
+              <Button 
+                onClick={() => {
+                  const seoPrompt = encodeURIComponent(`Create a comprehensive, SEO-optimized blog post with 90%+ SEO score following these guidelines:
+
+**CONTENT STRUCTURE:**
+1. **Compelling H1 Title** (50-60 characters, include primary keyword)
+2. **Meta Description** (150-160 characters, include primary keyword and call-to-action)
+3. **Introduction** (100-150 words, hook + keyword + value proposition)
+4. **Main Content Sections** with H2/H3 headers (2000+ words total)
+5. **Conclusion** with call-to-action
+6. **FAQ Section** (3-5 questions targeting long-tail keywords)
+
+**SEO REQUIREMENTS:**
+- Primary Keyword: [SPECIFY YOUR KEYWORD]
+- Secondary Keywords: [LIST 3-5 RELATED KEYWORDS]
+- Target Word Count: 2000-3000 words
+- Keyword Density: 1-2% for primary keyword
+- Use semantic keywords and LSI terms naturally
+- Include internal linking opportunities (mention where to link)
+- Add external linking to authoritative sources
+
+**FORMATTING FOR SEO:**
+- Use short paragraphs (2-3 sentences max)
+- Include bullet points and numbered lists
+- Bold important phrases and keywords
+- Add image alt text suggestions
+- Include schema markup suggestions
+- Mobile-friendly formatting
+
+**ENGAGEMENT FACTORS:**
+- Write in conversational tone
+- Include actionable tips and examples
+- Add statistics and data points
+- Use transition words for readability
+- Create compelling subheadings that encourage scrolling
+
+**TECHNICAL SEO:**
+- Suggest URL slug (5-7 words, include keyword)
+- Recommend featured snippet opportunities
+- Include social media meta tags
+- Suggest related posts for internal linking
+
+Please write about: [DESCRIBE YOUR TOPIC HERE]
+
+Target Audience: [DESCRIBE YOUR AUDIENCE]
+Business/Website: [YOUR BUSINESS NAME]
+Goal: [WHAT DO YOU WANT READERS TO DO?]`);
+                  
+                  const chatGptUrl = `https://chat.openai.com/?q=${seoPrompt}`;
+                  window.open(chatGptUrl, '_blank');
+                }}
+                className="w-full"
+                size="lg"
+              >
+                <ExternalLink className="w-5 h-5 mr-2" />
+                Get SEO Content Prompt for ChatGPT
+              </Button>
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h4 className="font-semibold text-blue-900 mb-2">💡 Pro Tips for 90%+ SEO Score:</h4>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li>• Research your keyword with tools like Ubersuggest or SEMrush</li>
+                  <li>• Check competitor content for the same keyword</li>
+                  <li>• Use Google's "People Also Ask" for FAQ ideas</li>
+                  <li>• Include your location if it's a local business</li>
+                  <li>• Add current year to title for freshness</li>
+                </ul>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Help Section */}
         <Card className="mt-8">
           <CardHeader>

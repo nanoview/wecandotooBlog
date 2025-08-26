@@ -462,9 +462,8 @@ const Admin = () => {
           <TabsContent value="posts" className="space-y-6">
             <Suspense fallback={<LoadingSkeleton />}>
               <PostsTab
-                blogPosts={blogPosts}
-                togglePostStatus={togglePostStatus}
-                deleteBlogPost={deleteBlogPost}
+                posts={blogPosts}
+                onRefresh={fetchData}
               />
             </Suspense>
           </TabsContent>

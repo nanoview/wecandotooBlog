@@ -40,7 +40,21 @@ const PostEditor: React.FC<PostEditorProps> = ({
   const [contentText, setContentText] = useState('');
   const [excerpt, setExcerpt] = useState(initialPost?.excerpt || '');
   const [category, setCategory] = useState(initialPost?.category || '');
-  const [tags, setTags] = useState<string[]>(initialPost?.tags || []);
+  
+  // Ensure tags is always an array
+  const [tags, setTags] = useState<string[]>(() => {
+    if (!initialPost?.tags) return [];
+    if (Array.isArray(initialPost.tags)) return initialPost.tags;
+    if (typeof initialPost.tags === 'string') {
+      try {
+        return JSON.parse(initialPost.tags);
+      } catch {
+        return [initialPost.tags];
+      }
+    }
+    return [];
+  });
+  
   const [newTag, setNewTag] = useState('');
   const [isPreview, setIsPreview] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
@@ -262,12 +276,12 @@ const PostEditor: React.FC<PostEditorProps> = ({
       return;
     }
 
-    // SEO Validation
-    if (status === 'published') {
+    // SEO Validation - only required for new posts, optional for edits
+    if (status === 'published' && mode === 'create') {
       if (!seoTitle || !metaDescription || !focusKeyword) {
         toast({
           title: "SEO Fields Required",
-          description: "Please fill in SEO title, meta description, and focus keyword before publishing.",
+          description: "Please fill in SEO title, meta description, and focus keyword before publishing a new post.",
           variant: "destructive"
         });
         return;
@@ -282,18 +296,40 @@ const PostEditor: React.FC<PostEditorProps> = ({
         content,
         excerpt: excerpt.trim() || contentText.substring(0, 150) + '...',
         category: category || 'Other',
-        tags,
+        tags: tags.filter(tag => typeof tag === 'string' && tag.trim().length > 0), // Ensure clean array
         featured_image: featuredImage,
         status,
         author_id: user?.id,
-        // SEO FIELDS
-        seo_title: seoTitle.trim(),
-        meta_description: metaDescription.trim(),
-        focus_keyword: focusKeyword.trim(),
-        slug: slug.trim(),
-        canonical_url: canonicalUrl.trim(),
+        // SEO FIELDS - Only slug is currently supported in database
+        ...(slug.trim() && { slug: slug.trim() }),
+        // TODO: Enable these when SEO columns are added to database
+        // ...(seoTitle.trim() && { seo_title: seoTitle.trim() }),
+        // ...(metaDescription.trim() && { meta_description: metaDescription.trim() }),
+        // ...(focusKeyword.trim() && { focus_keyword: focusKeyword.trim() }),
+        // ...(canonicalUrl.trim() && { canonical_url: canonicalUrl.trim() }),
         ...(mode === 'edit' && { id: initialPost.id })
       };
+
+      // Debug content size before saving
+      console.log('📊 PostEditor - Content size:', content.length, 'characters');
+      console.log('📊 PostEditor - Content preview:', content.substring(0, 200));
+      console.log('📊 PostEditor - Tags being saved:', tags, 'Type:', typeof tags, 'Array?', Array.isArray(tags));
+      
+      // CRITICAL: Check for content explosion
+      if (content.length > 1000000) { // 1MB
+        console.error('🚨 CRITICAL: Content explosion detected!', content.length, 'characters');
+        console.error('🚨 Content preview:', content.substring(0, 500));
+        toast({
+          title: "Content Too Large",
+          description: `Content has grown to ${Math.round(content.length / 1024 / 1024)}MB. Please refresh the page and start over.`,
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      if (content.length > 500000) { // 500KB warning
+        console.warn('⚠️ PostEditor - Content is very large:', content.length, 'characters');
+      }
 
       await onSave(postData);
       
@@ -306,10 +342,14 @@ const PostEditor: React.FC<PostEditorProps> = ({
         onClose();
       }
     } catch (error) {
-      console.error('Error saving post:', error);
+      console.error('Error saving post:');
+      console.error('🔍 PostEditor save error details:', JSON.stringify(error, null, 2));
+      console.error('🔍 PostEditor save error message:', error.message || 'No message');
+      console.error('🔍 PostEditor save error code:', error.code || 'No code');
+      console.error('🔍 PostEditor save error stack:', error.stack || 'No stack');
       toast({
         title: "Error",
-        description: "Failed to save the post. Please try again.",
+        description: `Failed to save the post: ${error.message || 'Unknown error'}`,
         variant: "destructive"
       });
     } finally {
@@ -381,6 +421,28 @@ const PostEditor: React.FC<PostEditorProps> = ({
                   </p>
                 </div>
 
+                {/* Emergency Content Reset */}
+                {content.length > 500000 && (
+                  <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
+                    <h3 className="text-red-800 font-semibold mb-2">⚠️ Content Size Warning</h3>
+                    <p className="text-red-700 text-sm mb-3">
+                      Content is very large ({Math.round(content.length / 1024)}KB). This may cause save issues.
+                    </p>
+                    <Button 
+                      variant="destructive" 
+                      size="sm"
+                      onClick={() => {
+                        if (confirm('This will clear the content and start fresh. Are you sure?')) {
+                          setContent('<p>Start writing your content here...</p>');
+                          setContentText('Start writing your content here...');
+                        }
+                      }}
+                    >
+                      Reset Content
+                    </Button>
+                  </div>
+                )}
+
                 {/* Featured Image */}
                 <div>
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 mb-2">
@@ -438,18 +500,39 @@ const PostEditor: React.FC<PostEditorProps> = ({
               </div>
             </div>
 
-            {/* Enhanced Sidebar with SEO and Images */}
+            {/* Unified Sidebar with All Fields */}
             <div className="w-full lg:w-96 border-t lg:border-t-0 lg:border-l pt-3 lg:pt-0 lg:pl-6 order-1 lg:order-2">
-              <Tabs defaultValue="content" className="h-full">
-                <TabsList className="grid w-full grid-cols-3 h-auto">
-                  <TabsTrigger value="content" className="text-xs sm:text-sm py-2">Content</TabsTrigger>
-                  <TabsTrigger value="images" className="text-xs sm:text-sm py-2">Images</TabsTrigger>
-                  <TabsTrigger value="seo" className="text-xs sm:text-sm py-2">SEO</TabsTrigger>
-                </TabsList>
+              <div className="space-y-3 sm:space-y-4 h-full overflow-y-auto">
+                {/* Edit Mode Info */}
+                {mode === 'edit' && (
+                  <Card className="bg-blue-50 border-blue-200">
+                    <CardContent className="pt-4">
+                      <div className="flex items-start gap-2">
+                        <div className="text-blue-600 mt-0.5">ℹ️</div>
+                        <div className="text-sm text-blue-800">
+                          <p className="font-medium mb-1">Editing Existing Post</p>
+                          <p className="text-xs">All fields below are pre-filled with current data. Leave empty to keep existing values unchanged.</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
-                <TabsContent value="content" className="space-y-3 sm:space-y-6 mt-3 sm:mt-6">
-                  {/* Category */}
-                  <Card>
+                {/* SEO Fields Notice */}
+                <Card className="bg-amber-50 border-amber-200">
+                  <CardContent className="pt-4">
+                    <div className="flex items-start gap-2">
+                      <div className="text-amber-600 mt-0.5">⚠️</div>
+                      <div className="text-sm text-amber-800">
+                        <p className="font-medium mb-1">SEO Fields Not Yet Saved</p>
+                        <p className="text-xs">SEO Title, Meta Description, Focus Keyword, and Canonical URL are displayed but not saved to database yet. Only URL Slug is currently saved.</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Category */}
+                <Card>
                     <CardHeader className="pb-2 sm:pb-3">
                       <CardTitle className="text-xs sm:text-sm">Category</CardTitle>
                     </CardHeader>
@@ -505,6 +588,63 @@ const PostEditor: React.FC<PostEditorProps> = ({
                     </CardContent>
                   </Card>
 
+                  {/* Meta Description */}
+                  <Card>
+                    <CardHeader className="pb-2 sm:pb-3">
+                      <CardTitle className="text-xs sm:text-sm">Meta Description</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Textarea
+                        placeholder="Brief description for search results (150-160 characters)"
+                        value={metaDescription}
+                        onChange={(e) => setMetaDescription(e.target.value)}
+                        maxLength={160}
+                        rows={3}
+                        className="text-xs sm:text-sm"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        {metaDescription.length}/160 characters
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  {/* SEO Title */}
+                  <Card>
+                    <CardHeader className="pb-2 sm:pb-3">
+                      <CardTitle className="text-xs sm:text-sm">SEO Title</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Input
+                        placeholder="Custom SEO title for search engines"
+                        value={seoTitle}
+                        onChange={(e) => setSeoTitle(e.target.value)}
+                        maxLength={60}
+                        className="text-xs sm:text-sm"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        {seoTitle.length}/60 characters
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  {/* URL Slug */}
+                  <Card>
+                    <CardHeader className="pb-2 sm:pb-3">
+                      <CardTitle className="text-xs sm:text-sm">URL Slug</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Input
+                        placeholder="url-slug-for-post"
+                        value={slug}
+                        onChange={(e) => setSlug(e.target.value)}
+                        className="text-xs sm:text-sm"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        wecandotoo.com/blog/{slug || 'url-slug'}
+                      </p>
+                    </CardContent>
+                  </Card>
+
                   {/* Reading Time */}
                   <Card>
                     <CardHeader className="pb-2 sm:pb-3">
@@ -531,11 +671,9 @@ const PostEditor: React.FC<PostEditorProps> = ({
                       </div>
                     </CardContent>
                   </Card>
-                </TabsContent>
 
-                <TabsContent value="images" className="space-y-6 mt-6">
-                  {/* Image Uploader */}
-                  <Card>
+                {/* Meta Description */}
+                <Card>
                     <CardHeader className="pb-3">
                       <CardTitle className="text-sm flex items-center gap-2">
                         <Upload className="w-4 h-4" />
@@ -593,11 +731,9 @@ const PostEditor: React.FC<PostEditorProps> = ({
                       </CardContent>
                     </Card>
                   )}
-                </TabsContent>
 
-                <TabsContent value="seo" className="space-y-6 mt-6">
-                  {/* SEO Score */}
-                  <Card>
+                {/* SEO Score */}
+                <Card>
                     <CardHeader className="pb-3">
                       <CardTitle className="text-sm flex items-center gap-2">
                         <Target className="w-4 h-4" />
@@ -640,43 +776,6 @@ const PostEditor: React.FC<PostEditorProps> = ({
                     </CardContent>
                   </Card>
 
-                  {/* SEO Title */}
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm">SEO Title</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <Input
-                        placeholder="Custom SEO title for search engines"
-                        value={seoTitle}
-                        onChange={(e) => setSeoTitle(e.target.value)}
-                        maxLength={60}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        {seoTitle.length}/60 characters
-                      </p>
-                    </CardContent>
-                  </Card>
-
-                  {/* Meta Description */}
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm">Meta Description</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <Textarea
-                        placeholder="Brief description for search results (150-160 characters)"
-                        value={metaDescription}
-                        onChange={(e) => setMetaDescription(e.target.value)}
-                        maxLength={160}
-                        rows={3}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        {metaDescription.length}/160 characters
-                      </p>
-                    </CardContent>
-                  </Card>
-
                   {/* Focus Keyword */}
                   <Card>
                     <CardHeader className="pb-3">
@@ -699,26 +798,6 @@ const PostEditor: React.FC<PostEditorProps> = ({
                     </CardContent>
                   </Card>
 
-                  {/* URL Slug */}
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm flex items-center gap-2">
-                        <Globe className="w-4 h-4" />
-                        URL Slug
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <Input
-                        placeholder="url-friendly-slug"
-                        value={slug}
-                        onChange={(e) => setSlug(e.target.value)}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        URL: /blog/{slug}
-                      </p>
-                    </CardContent>
-                  </Card>
-
                   {/* Canonical URL */}
                   <Card>
                     <CardHeader className="pb-3">
@@ -735,8 +814,7 @@ const PostEditor: React.FC<PostEditorProps> = ({
                       </p>
                     </CardContent>
                   </Card>
-                </TabsContent>
-              </Tabs>
+              </div>
             </div>
           </div>
         </CardContent>

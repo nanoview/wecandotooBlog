@@ -1,344 +1,183 @@
-# Stellar Content Stream
+# Supabase CLI
 
-A modern, full-featured content management system and blog platform built with React, TypeScript, Vite, and Supabase. Features advanced SEO automation, visitor analytics, and a comprehensive admin dashboard.
+[![Coverage Status](https://coveralls.io/repos/github/supabase/cli/badge.svg?branch=main)](https://coveralls.io/github/supabase/cli?branch=main) [![Bitbucket Pipelines](https://img.shields.io/bitbucket/pipelines/supabase-cli/setup-cli/master?style=flat-square&label=Bitbucket%20Canary)](https://bitbucket.org/supabase-cli/setup-cli/pipelines) [![Gitlab Pipeline Status](https://img.shields.io/gitlab/pipeline-status/sweatybridge%2Fsetup-cli?label=Gitlab%20Canary)
+](https://gitlab.com/sweatybridge/setup-cli/-/pipelines)
 
-## 🌟 Live Demo
+[Supabase](https://supabase.io) is an open source Firebase alternative. We're building the features of Firebase using enterprise-grade open source tools.
 
-- **Main Website**: [wecandotoo.com](https://wecandotoo.com)
-- **Portfolio**: [wecandotoo.com/ariful](https://wecandotoo.com/ariful)
+This repository contains all the functionality for Supabase CLI.
 
-## 📋 Table of Contents
+- [x] Running Supabase locally
+- [x] Managing database migrations
+- [x] Creating and deploying Supabase Functions
+- [x] Generating types directly from your database schema
+- [x] Making authenticated HTTP requests to [Management API](https://supabase.com/docs/reference/api/introduction)
 
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Environment Setup](#environment-setup)
-- [Development](#development)
-- [Deployment](#deployment)
-- [Project Structure](#project-structure)
-- [API Documentation](#api-documentation)
-- [Contributing](#contributing)
-- [License](#license)
+## Getting started
 
-## ✨ Features
+### Install the CLI
 
-### 🎯 Core Features
-- **Modern Blog Platform**: Create, edit, and manage blog posts with a rich editor
-- **SEO Optimization**: Automated SEO scoring, keyword suggestions, and meta tag generation
-- **Visitor Analytics**: Real-time visitor tracking with IP geolocation and device detection
-- **Admin Dashboard**: Comprehensive analytics, user management, and content control
-- **Portfolio System**: Professional portfolio pages with project showcases
-- **Newsletter Integration**: Email subscription and newsletter management
-- **Social Sharing**: Built-in social media sharing capabilities
-- **RSS Feed**: Automated RSS feed generation for blog posts
-
-### 🔧 Technical Features
-- **Responsive Design**: Mobile-first, fully responsive across all devices
-- **PWA Ready**: Progressive Web App capabilities
-- **SEO Optimized**: Dynamic meta tags, structured data, and sitemap generation
-- **Security**: Row-Level Security (RLS) policies and secure authentication
-- **Real-time Updates**: Live data synchronization using Supabase real-time features
-- **Edge Functions**: Server-side processing with Supabase Edge Functions
-- **TypeScript**: Full type safety across the entire application
-
-## 🛠 Tech Stack
-
-### Frontend
-- **React 18** - UI library
-- **TypeScript** - Type safety
-- **Vite** - Build tool and dev server
-- **Tailwind CSS** - Utility-first CSS framework
-- **Shadcn/ui** - Modern UI components
-- **React Router** - Client-side routing
-- **TanStack Query** - Server state management
-
-### Backend
-- **Supabase** - Backend as a Service
-- **PostgreSQL** - Database
-- **Row-Level Security** - Database security
-- **Supabase Edge Functions** - Serverless functions
-- **Real-time subscriptions** - Live data updates
-
-### Services & Integrations
-- **Google Analytics** - Web analytics
-- **Google AdSense** - Monetization
-- **Google Site Kit** - SEO and performance tracking
-- **Email Services** - Newsletter and notifications
-- **IP Geolocation** - Visitor tracking
-
-## 📋 Prerequisites
-
-Before you begin, ensure you have the following installed:
-
-- **Node.js** (v18 or higher)
-- **npm** or **yarn** package manager
-- **Git** for version control
-- **Supabase CLI** (optional, for local development)
-
-## 🚀 Installation
-
-### 1. Clone the Repository
+Available via [NPM](https://www.npmjs.com) as dev dependency. To install:
 
 ```bash
-git clone https://github.com/nanoview/stellar-content-stream.git
-cd stellar-content-stream
+npm i supabase --save-dev
 ```
 
-### 2. Install Dependencies
+To install the beta release channel:
 
 ```bash
-npm install
+npm i supabase@beta --save-dev
 ```
 
-### 3. Environment Setup
+When installing with yarn 4, you need to disable experimental fetch with the following nodejs config.
 
-Create environment files:
+```
+NODE_OPTIONS=--no-experimental-fetch yarn add supabase
+```
+
+> **Note**
+For Bun versions below v1.0.17, you must add `supabase` as a [trusted dependency](https://bun.sh/guides/install/trusted) before running `bun add -D supabase`.
+
+<details>
+  <summary><b>macOS</b></summary>
+
+  Available via [Homebrew](https://brew.sh). To install:
+
+  ```sh
+  brew install supabase/tap/supabase
+  ```
+
+  To install the beta release channel:
+  
+  ```sh
+  brew install supabase/tap/supabase-beta
+  brew link --overwrite supabase-beta
+  ```
+  
+  To upgrade:
+
+  ```sh
+  brew upgrade supabase
+  ```
+</details>
+
+<details>
+  <summary><b>Windows</b></summary>
+
+  Available via [Scoop](https://scoop.sh). To install:
+
+  ```powershell
+  scoop bucket add supabase https://github.com/supabase/scoop-bucket.git
+  scoop install supabase
+  ```
+
+  To upgrade:
+
+  ```powershell
+  scoop update supabase
+  ```
+</details>
+
+<details>
+  <summary><b>Linux</b></summary>
+
+  Available via [Homebrew](https://brew.sh) and Linux packages.
+
+  #### via Homebrew
+
+  To install:
+
+  ```sh
+  brew install supabase/tap/supabase
+  ```
+
+  To upgrade:
+
+  ```sh
+  brew upgrade supabase
+  ```
+
+  #### via Linux packages
+
+  Linux packages are provided in [Releases](https://github.com/supabase/cli/releases). To install, download the `.apk`/`.deb`/`.rpm`/`.pkg.tar.zst` file depending on your package manager and run the respective commands.
+
+  ```sh
+  sudo apk add --allow-untrusted <...>.apk
+  ```
+
+  ```sh
+  sudo dpkg -i <...>.deb
+  ```
+
+  ```sh
+  sudo rpm -i <...>.rpm
+  ```
+
+  ```sh
+  sudo pacman -U <...>.pkg.tar.zst
+  ```
+</details>
+
+<details>
+  <summary><b>Other Platforms</b></summary>
+
+  You can also install the CLI via [go modules](https://go.dev/ref/mod#go-install) without the help of package managers.
+
+  ```sh
+  go install github.com/supabase/cli@latest
+  ```
+
+  Add a symlink to the binary in `$PATH` for easier access:
+
+  ```sh
+  ln -s "$(go env GOPATH)/bin/cli" /usr/bin/supabase
+  ```
+
+  This works on other non-standard Linux distros.
+</details>
+
+<details>
+  <summary><b>Community Maintained Packages</b></summary>
+
+  Available via [pkgx](https://pkgx.sh/). Package script [here](https://github.com/pkgxdev/pantry/blob/main/projects/supabase.com/cli/package.yml).
+  To install in your working directory:
+
+  ```bash
+  pkgx install supabase
+  ```
+
+  Available via [Nixpkgs](https://nixos.org/). Package script [here](https://github.com/NixOS/nixpkgs/blob/master/pkgs/development/tools/supabase-cli/default.nix).
+</details>
+
+### Run the CLI
 
 ```bash
-cp .env.example .env.local
+supabase bootstrap
 ```
 
-### 4. Configure Environment Variables
-
-Edit `.env.local` with your configuration:
-
-```env
-# Supabase Configuration
-VITE_SUPABASE_URL=your_supabase_project_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-
-# Google Services (Optional)
-VITE_GOOGLE_ANALYTICS_ID=your_ga_id
-VITE_GOOGLE_ADSENSE_CLIENT_ID=your_adsense_client_id
-VITE_GOOGLE_SITE_VERIFICATION=your_site_verification_code
-
-# Site Configuration
-VITE_SITE_URL=http://localhost:5173
-VITE_SITE_NAME="Your Site Name"
-```
-
-## 🌐 Environment Setup
-
-### Supabase Setup
-
-1. **Create a Supabase Project**:
-   - Go to [supabase.com](https://supabase.com)
-   - Create a new project
-   - Copy your project URL and anon key
-
-2. **Database Setup**:
-   - The application will automatically create required tables
-   - Or run the SQL scripts in the `/supabase` folder
-
-3. **Row-Level Security**:
-   - RLS policies are automatically configured
-   - Ensure authentication is enabled in Supabase
-
-### Google Services Setup (Optional)
-
-1. **Google Analytics**:
-   - Create a GA4 property
-   - Copy your Measurement ID
-
-2. **Google AdSense**:
-   - Apply for AdSense
-   - Get your publisher ID
-
-3. **Search Console**:
-   - Verify your website
-   - Get verification code
-
-## 💻 Development
-
-### Start Development Server
+Or using npx:
 
 ```bash
-npm run dev
+npx supabase bootstrap
 ```
 
-The application will be available at `http://localhost:5173`
+The bootstrap command will guide you through the process of setting up a Supabase project using one of the [starter](https://github.com/supabase-community/supabase-samples/blob/main/samples.json) templates.
 
-### Available Scripts
+## Docs
 
-```bash
-# Development
-npm run dev          # Start development server
-npm run build        # Build for production
-npm run preview      # Preview production build
-npm run lint         # Run ESLint
+Command & config reference can be found [here](https://supabase.com/docs/reference/cli/about).
 
-# Supabase (if using local development)
-npm run supabase:start    # Start local Supabase
-npm run supabase:stop     # Stop local Supabase
-npm run supabase:reset    # Reset local database
+## Breaking changes
+
+We follow semantic versioning for changes that directly impact CLI commands, flags, and configurations.
+
+However, due to dependencies on other service images, we cannot guarantee that schema migrations, seed.sql, and generated types will always work for the same CLI major version. If you need such guarantees, we encourage you to pin a specific version of CLI in package.json.
+
+## Developing
+
+To run from source:
+
+```sh
+# Go >= 1.22
+go run . help
 ```
-
-## 🏗 Project Structure
-
-```
-stellar-content-stream/
-├── public/                 # Static assets
-│   ├── ariful-photo.jpg   # Portfolio photo
-│   └── favicon.ico        # Site favicon
-├── src/                   # Source code
-│   ├── components/        # Reusable components
-│   │   ├── ui/           # Shadcn/ui components
-│   │   ├── admin/        # Admin-specific components
-│   │   └── navigation/   # Navigation components
-│   ├── pages/            # Page components
-│   │   ├── Index.tsx     # Home page
-│   │   ├── Admin.tsx     # Admin dashboard
-│   │   └── ArifulPortfolio.tsx # Portfolio page
-│   ├── hooks/            # Custom React hooks
-│   ├── utils/            # Utility functions
-│   ├── config/           # Configuration files
-│   └── types/            # TypeScript type definitions
-├── supabase/             # Supabase configuration
-│   ├── functions/        # Edge functions
-│   └── migrations/       # Database migrations
-├── .env.example          # Environment variables template
-├── package.json          # Project dependencies
-├── tailwind.config.ts    # Tailwind CSS configuration
-├── tsconfig.json         # TypeScript configuration
-└── vite.config.ts        # Vite configuration
-```
-
-## 🚀 Deployment
-
-### Deploy to Vercel (Recommended)
-
-1. **Connect to Vercel**:
-   ```bash
-   npm install -g vercel
-   vercel
-   ```
-
-2. **Configure Environment Variables**:
-   - Add all environment variables in Vercel dashboard
-   - Ensure production URLs are used
-
-3. **Deploy**:
-   ```bash
-   vercel --prod
-   ```
-
-### Deploy to Netlify
-
-1. **Build the project**:
-   ```bash
-   npm run build
-   ```
-
-2. **Deploy dist folder** to Netlify
-
-### Deploy to Other Platforms
-
-The project can be deployed to any static hosting service:
-- GitHub Pages
-- Firebase Hosting
-- AWS S3 + CloudFront
-- DigitalOcean App Platform
-
-## 📖 API Documentation
-
-### Blog Posts API
-
-```typescript
-// Get all posts
-GET /api/posts
-
-// Get single post
-GET /api/posts/:slug
-
-// Create post (Admin only)
-POST /api/posts
-
-// Update post (Admin only)
-PUT /api/posts/:id
-
-// Delete post (Admin only)
-DELETE /api/posts/:id
-```
-
-### Analytics API
-
-```typescript
-// Get visitor analytics
-GET /api/analytics/visitors
-
-// Get post impressions
-GET /api/analytics/impressions
-
-// Track visitor
-POST /api/analytics/track
-```
-
-## 🔧 Configuration
-
-### Admin Access
-
-1. **Create Admin User**:
-   - Sign up through the auth system
-   - Run SQL to make user admin:
-   ```sql
-   UPDATE user_roles SET role = 'admin' WHERE user_id = 'your_user_id';
-   ```
-
-2. **Access Admin Dashboard**:
-   - Visit `/admin` after logging in
-   - All admin features will be available
-
-### SEO Configuration
-
-- **Meta Tags**: Automatically generated for each page
-- **Structured Data**: JSON-LD schema markup
-- **Sitemap**: Auto-generated at `/sitemap.xml`
-- **RSS Feed**: Available at `/feed.xml`
-
-## 🤝 Contributing
-
-1. **Fork the repository**
-2. **Create your feature branch**: `git checkout -b feature/amazing-feature`
-3. **Commit your changes**: `git commit -m 'Add some amazing feature'`
-4. **Push to the branch**: `git push origin feature/amazing-feature`
-5. **Open a Pull Request**
-
-### Development Guidelines
-
-- Follow TypeScript best practices
-- Use Tailwind CSS for styling
-- Write meaningful commit messages
-- Test your changes thoroughly
-- Update documentation as needed
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 👨‍💻 Author
-
-**Ariful Islam**
-- Portfolio: [wecandotoo.com/ariful](https://wecandotoo.com/ariful)
-- LinkedIn: [linkedin.com/in/ariful-802is11](https://www.linkedin.com/in/ariful-802is11/)
-- GitHub: [github.com/nanoview](https://github.com/nanoview)
-- Email: arif.js@gmail.com
-
-## 🙏 Acknowledgments
-
-- [Supabase](https://supabase.com) for the amazing backend platform
-- [Shadcn/ui](https://ui.shadcn.com) for beautiful UI components
-- [Tailwind CSS](https://tailwindcss.com) for the utility-first CSS framework
-- [Vite](https://vitejs.dev) for the fast build tool
-
-## 📞 Support
-
-If you have any questions or need help with setup, feel free to reach out:
-
-- **Email**: arif.js@gmail.com
-- **WhatsApp**: [+358403781793](https://wa.me/358403781793)
-- **Create an Issue**: [GitHub Issues](https://github.com/nanoview/stellar-content-stream/issues)
-
----
-
-⭐ **Star this repository if you found it helpful!**

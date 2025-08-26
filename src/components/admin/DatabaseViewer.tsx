@@ -319,6 +319,9 @@ const DatabaseViewer: React.FC = () => {
     a.href = url;
     a.download = `${selectedTable}_export.csv`;
     a.click();
+    
+    // Clean up the Blob URL after download
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   const filteredData = tableData.filter(row =>

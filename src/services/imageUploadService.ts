@@ -227,7 +227,13 @@ export const compressImage = (file: File, quality: number = 0.8): Promise<File> 
     const ctx = canvas.getContext('2d');
     const img = new Image();
     
+    // Create Blob URL for the image
+    const blobUrl = URL.createObjectURL(file);
+    
     img.onload = () => {
+      // IMPORTANT: Revoke the Blob URL as soon as we're done with it
+      URL.revokeObjectURL(blobUrl);
+      
       // Calculate optimal dimensions (max width 1200px for web)
       const maxWidth = 1200;
       const ratio = Math.min(maxWidth / img.width, maxWidth / img.height);
@@ -254,6 +260,13 @@ export const compressImage = (file: File, quality: number = 0.8): Promise<File> 
       );
     };
     
-    img.src = URL.createObjectURL(file);
+    img.onerror = () => {
+      // Clean up the Blob URL on error too
+      URL.revokeObjectURL(blobUrl);
+      console.error('Failed to load image for compression');
+      resolve(file); // Return original file if compression fails
+    };
+    
+    img.src = blobUrl;
   });
 };

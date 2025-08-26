@@ -73,8 +73,28 @@ const Edit = () => {
     try {
       if (!originalPostId) throw new Error('No post ID provided');
       
-      console.log('Saving post with database ID:', originalPostId);
-      console.log('Post data:', postData);
+      console.log('🔍 Edit.tsx - Saving post with database ID:', originalPostId);
+      console.log('🔍 Edit.tsx - Raw post data:', postData);
+      console.log('🔍 Edit.tsx - Tags specifically:', postData.tags, 'Type:', typeof postData.tags, 'Array?', Array.isArray(postData.tags));
+      
+      // Ensure tags are properly formatted before sending to updateBlogPost
+      if (postData.tags) {
+        if (typeof postData.tags === 'string') {
+          console.warn('⚠️ Edit.tsx - Tags are a string, converting to array:', postData.tags);
+          try {
+            postData.tags = JSON.parse(postData.tags);
+          } catch {
+            postData.tags = [postData.tags];
+          }
+        }
+        if (!Array.isArray(postData.tags)) {
+          console.warn('⚠️ Edit.tsx - Tags are not an array, fixing:', postData.tags);
+          postData.tags = [];
+        }
+        // Clean the array
+        postData.tags = postData.tags.filter(tag => typeof tag === 'string' && tag.trim().length > 0);
+        console.log('🔍 Edit.tsx - Cleaned tags:', postData.tags);
+      }
       
       // Update the post using the original database UUID
       await updateBlogPost(originalPostId, postData);

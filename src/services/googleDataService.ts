@@ -57,10 +57,65 @@ export class GoogleDataService {
   private propertyId: string;
   private siteUrl: string;
 
+    // GA4 Measurement Protocol API secret (set in .env)
+    private measurementApiSecret: string = import.meta.env.VITE_GA4_MEASUREMENT_API_SECRET || '';
+    private measurementId: string = import.meta.env.VITE_GA4_MEASUREMENT_ID || '';
+
   constructor() {
     this.oauth = GoogleOAuth.getInstance();
     this.propertyId = import.meta.env.VITE_GOOGLE_ANALYTICS_PROPERTY_ID || '';
     this.siteUrl = import.meta.env.VITE_SITE_URL || 'https://wecandotoo.com';
+  // Measurement Protocol IDs
+  this.measurementApiSecret = import.meta.env.VITE_GA4_MEASUREMENT_API_SECRET || '';
+  this.measurementId = import.meta.env.VITE_GA4_MEASUREMENT_ID || '';
+  }
+  /**
+   * Send a pageview event to Google Analytics 4 using Measurement Protocol
+   * @param clientId - Unique client identifier (from cookie or generated)
+   * @param pagePath - Path of the page viewed
+   * @param pageTitle - Title of the page
+   */
+  async sendPageviewEvent(clientId: string, pagePath: string, pageTitle: string): Promise<boolean> {
+    if (!this.measurementApiSecret || !this.measurementId) {
+      console.error('GA4 Measurement Protocol credentials missing.');
+      return false;
+    }
+    const url = `https://www.google-analytics.com/mp/collect?measurement_id=${this.measurementId}&api_secret=${this.measurementApiSecret}`;
+    const payload = {
+      client_id: clientId,
+      events: [
+        {
+          name: 'page_view',
+          params: {
+            page_title: pageTitle,
+            page_location: `${this.siteUrl}${pagePath}`,
+            page_path: pagePath
+          }
+        }
+      ]
+    };
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      return res.ok;
+    } catch (err) {
+      console.error('Failed to send GA4 pageview event:', err);
+      return false;
+    }
+  }
+
+  /**
+   * Automated SEO report generator (stub)
+   * This should run periodically and send a summary to admin or store in DB
+   */
+  async runAutomatedSEOReport(): Promise<void> {
+    // TODO: Integrate with advancedSEOAnalyzer and email/reporting system
+    // Example: Analyze all posts, summarize scores, send email or store report
+    console.log('Automated SEO report job started...');
+    // ...implementation goes here...
   }
 
   /**

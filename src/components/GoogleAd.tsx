@@ -1,5 +1,12 @@
 import { useEffect, useState, useRef } from 'react';
 
+// Declare adsbygoogle on window
+declare global {
+  interface Window {
+    adsbygoogle: any[];
+  }
+}
+
 interface GoogleAdProps {
   slot?: string;
   layout?: 'banner' | 'rectangle' | 'responsive';
@@ -14,6 +21,24 @@ const GoogleAd = ({ slot = 'default', layout = 'responsive', className = '' }: G
   // Use a ref to track initialization
   const initializedRef = useRef(false);
 
+  // Add global error handler for AdSense errors
+  useEffect(() => {
+    const handleAdError = (error: any) => {
+      console.error('GoogleAd: Global AdSense error caught:', error);
+      if (error.message && error.message.includes('availableWidth=0')) {
+        console.warn('GoogleAd: Width issue detected, marking ad as failed');
+        setAdFailed(true);
+      }
+    };
+
+    // Listen for uncaught errors that might be AdSense related
+    window.addEventListener('error', handleAdError);
+    
+    return () => {
+      window.removeEventListener('error', handleAdError);
+    };
+  }, []);
+
   useEffect(() => {
     // Prevent multiple initialization attempts
     if (initializedRef.current) return;
@@ -22,6 +47,18 @@ const GoogleAd = ({ slot = 'default', layout = 'responsive', className = '' }: G
     const loadAd = () => {
       try {
         if (adRef.current && window.adsbygoogle) {
+          // Check if container has width before proceeding
+          const containerWidth = adRef.current.offsetWidth;
+          if (containerWidth === 0) {
+            console.warn('GoogleAd: Container width is 0, delaying ad load');
+            // Retry after a short delay to allow layout to settle
+            setTimeout(() => {
+              initializedRef.current = false; // Reset to allow retry
+              loadAd();
+            }, 500);
+            return;
+          }
+          
           // Clear any existing content
           adRef.current.innerHTML = '';
           
@@ -41,13 +78,23 @@ const GoogleAd = ({ slot = 'default', layout = 'responsive', className = '' }: G
           } else {
             adElement.setAttribute('data-ad-format', 'auto');
             adElement.setAttribute('data-full-width-responsive', 'true');
+            // Ensure minimum dimensions for responsive ads
+            adElement.style.minWidth = '300px';
+            adElement.style.minHeight = '250px';
           }
           
           // Append the ad element to our ref
           adRef.current.appendChild(adElement);
           
-          // Push the ad to adsbygoogle for display
-          (window.adsbygoogle = window.adsbygoogle || []).push({});
+          // Push the ad to adsbygoogle for display with error handling
+          try {
+            (window.adsbygoogle = window.adsbygoogle || []).push({});
+            console.log('GoogleAd: Ad pushed successfully for slot:', slot);
+          } catch (adError) {
+            console.error('GoogleAd: Error pushing ad to adsbygoogle:', adError);
+            setAdFailed(true);
+            return;
+          }
           
           // Mark as loaded after a delay
           setTimeout(() => setAdLoaded(true), 1000);
@@ -100,6 +147,12 @@ const GoogleAd = ({ slot = 'default', layout = 'responsive', className = '' }: G
     <div 
       ref={adRef} 
       className={`google-ad ${adLoaded ? 'ad-loaded' : 'ad-loading'} ${className}`}
+      style={{
+        minWidth: layout === 'responsive' ? '300px' : undefined,
+        minHeight: layout === 'responsive' ? '250px' : undefined,
+        width: layout === 'banner' ? '728px' : layout === 'rectangle' ? '300px' : '100%',
+        height: layout === 'banner' ? '90px' : layout === 'rectangle' ? '250px' : 'auto'
+      }}
     />
   );
 };

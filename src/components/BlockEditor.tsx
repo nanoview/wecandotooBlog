@@ -47,6 +47,45 @@ const BlockEditor: React.FC<BlockEditorProps> = ({ blocks, onChange, readOnly = 
   const [selectedBlock, setSelectedBlock] = useState<string | null>(null);
   const [showAddMenu, setShowAddMenu] = useState<string | null>(null);
   const [draggedBlock, setDraggedBlock] = useState<string | null>(null);
+  const blobUrlsRef = useRef<Set<string>>(new Set()); // Track created Blob URLs
+
+  // Cleanup Blob URLs when component unmounts or blocks change
+  useEffect(() => {
+    return () => {
+      // Cleanup all tracked Blob URLs
+      blobUrlsRef.current.forEach(url => {
+        URL.revokeObjectURL(url);
+      });
+      blobUrlsRef.current.clear();
+    };
+  }, []);
+
+  // Cleanup specific Blob URLs when blocks are removed
+  useEffect(() => {
+    const currentUrls = new Set<string>();
+    
+    // Collect all current Blob URLs from blocks
+    blocks.forEach(block => {
+      if (block.content._blobUrl) {
+        currentUrls.add(block.content._blobUrl);
+      }
+      if (block.content.images) {
+        block.content.images.forEach((img: any) => {
+          if (img._blobUrl) {
+            currentUrls.add(img._blobUrl);
+          }
+        });
+      }
+    });
+    
+    // Revoke URLs that are no longer used
+    blobUrlsRef.current.forEach(url => {
+      if (!currentUrls.has(url)) {
+        URL.revokeObjectURL(url);
+        blobUrlsRef.current.delete(url);
+      }
+    });
+  }, [blocks]);
 
   const addBlock = (afterId: string | null, type: Block['type']) => {
     const newBlock: Block = {
@@ -240,11 +279,16 @@ const BlockComponent: React.FC<BlockComponentProps> = ({
       // Handle multiple images for gallery
       files.forEach(file => {
         const url = URL.createObjectURL(file);
+        // Note: Store URL for cleanup when component updates
+        
         const newImage = {
           id: `${Date.now()}_${Math.random()}`,
           url,
           caption: '',
-          alt: file.name.replace(/\.[^/.]+$/, '') // Remove extension for alt text
+          alt: file.name.replace(/\.[^/.]+$/, ''), // Remove extension for alt text
+          file: file, // Store the file reference for cleanup
+          _blobUrl: url, // Mark as temporary blob URL
+          _cleanup: () => URL.revokeObjectURL(url) // Cleanup function
         };
         
         onUpdate({
@@ -258,11 +302,16 @@ const BlockComponent: React.FC<BlockComponentProps> = ({
       // Handle single image
       const file = files[0];
       const url = URL.createObjectURL(file);
+      // Note: Store URL for cleanup when component updates
+      
       onUpdate({
         content: { 
           ...block.content, 
           url,
-          alt: block.content.alt || file.name.replace(/\.[^/.]+$/, '')
+          alt: block.content.alt || file.name.replace(/\.[^/.]+$/, ''),
+          file: file, // Store the file reference
+          _blobUrl: url, // Mark as temporary blob URL
+          _cleanup: () => URL.revokeObjectURL(url) // Cleanup function
         }
       });
     }

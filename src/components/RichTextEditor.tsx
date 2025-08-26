@@ -19,8 +19,26 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   const [htmlContent, setHtmlContent] = useState(initialContent);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [lastUpdateTime, setLastUpdateTime] = useState(0);
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // NUCLEAR SAFETY: Global content size monitor
+  useEffect(() => {
+    const monitor = setInterval(() => {
+      if (editorRef.current) {
+        const currentSize = editorRef.current.innerHTML.length;
+        if (currentSize > 8000) { // 8KB emergency limit
+          console.error('🚨🚨🚨 GLOBAL MONITOR: Content explosion detected:', currentSize);
+          editorRef.current.innerHTML = '<p>Content automatically reset by safety monitor</p>';
+          alert('Content size monitor detected an explosion and reset the editor for safety.');
+          clearInterval(monitor);
+        }
+      }
+    }, 500); // Check every 500ms
+
+    return () => clearInterval(monitor);
+  }, []);
 
   // Save and restore cursor position
   const saveCursorPosition = () => {
@@ -50,7 +68,64 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
   const updateContent = () => {
     if (editorRef.current) {
+      // IMMEDIATE SAFETY CHECK: Before any processing
+      const preCheck = editorRef.current.innerHTML;
+      if (preCheck && preCheck.length > 10000) { // 10KB immediate kill switch
+        console.error('🚨🚨🚨 IMMEDIATE KILL SWITCH: Content too large before processing:', preCheck.length);
+        editorRef.current.innerHTML = '<p>Content automatically reset - exceeded safe limits</p>';
+        alert('Content explosion detected and stopped. Please refresh the page.');
+        return;
+      }
+      
+      // Throttle updates to prevent infinite loops
+      const now = Date.now();
+      if (now - lastUpdateTime < 100) { // Minimum 100ms between updates
+        console.log('🛑 RichTextEditor - Update throttled');
+        return;
+      }
+      setLastUpdateTime(now);
+      
       let html = editorRef.current.innerHTML;
+      
+      console.log('🔄 RichTextEditor - Processing content, size:', html.length);
+      
+      // NUCLEAR OPTION: Immediate circuit breaker at 5KB
+      if (html.length > 5000) { // 5KB limit - extremely aggressive
+        console.error('🚨🚨🚨 NUCLEAR: Content explosion detected:', html.length, 'characters');
+        console.error('🚨 Content limit: ' + html.length);
+        
+        // HARD RESET: Clear everything immediately
+        if (editorRef.current) {
+          editorRef.current.innerHTML = '<p>⚠️ Content reset - size limit exceeded (5KB max)</p>';
+          // Force a re-render to break any loops
+          setTimeout(() => {
+            if (editorRef.current) {
+              editorRef.current.innerHTML = '<p>Please paste content in small chunks</p>';
+            }
+          }, 100);
+        }
+        
+        alert('CRITICAL: Content size exceeded 5KB limit. Editor reset for safety. Please work with much smaller content.');
+        return;
+      }
+      
+      // Warning at 2KB
+      if (html.length > 2000) { // 2KB warning
+        console.warn('⚠️ Content approaching 2KB limit:', html.length, 'characters');
+        console.warn('⚠️ Content limit: ' + html.length);
+      }
+      
+      // Check for content duplication patterns (common in infinite loops)
+      if (html.length > 50000) { // Only check for large content
+        const contentPreview = html.substring(0, 100);
+        const duplicateMatches = (html.match(new RegExp(contentPreview.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length;
+        if (duplicateMatches > 10) {
+          console.error('🚨 RichTextEditor - Detected content duplication, preventing save');
+          console.error('🚨 Duplicate pattern detected:', duplicateMatches, 'times');
+          alert('Content duplication detected (likely editor bug). Please refresh the page and try again.');
+          return;
+        }
+      }
       
       // Clean up the HTML but preserve important formatting
       // First normalize div elements to paragraphs

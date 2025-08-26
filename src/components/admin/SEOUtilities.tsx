@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import SEOOptimizationDashboard from '@/components/admin/SEOOptimizationDashboard';
+import EnhancedSEODashboard from '@/components/admin/EnhancedSEODashboard';
 
 const SEOUtilities: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -210,11 +211,15 @@ const SEOUtilities: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="ai-seo" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-5">
+          <Tabs defaultValue="enhanced-seo" className="space-y-4">
+            <TabsList className="grid w-full grid-cols-6">
+              <TabsTrigger value="enhanced-seo" className="flex items-center gap-2 text-xs">
+                <BarChart3 className="w-3 h-3" />
+                Enhanced SEO
+              </TabsTrigger>
               <TabsTrigger value="ai-seo" className="flex items-center gap-2 text-xs">
                 <Brain className="w-3 h-3" />
-                SEO Dashboard
+                Basic SEO
               </TabsTrigger>
               <TabsTrigger value="live-rss" className="flex items-center gap-2 text-xs">
                 <Download className="w-3 h-3" />
@@ -233,6 +238,10 @@ const SEOUtilities: React.FC = () => {
                 RSS Feed
               </TabsTrigger>
             </TabsList>
+
+            <TabsContent value="enhanced-seo" className="space-y-4">
+              <EnhancedSEODashboard />
+            </TabsContent>
 
             <TabsContent value="ai-seo" className="space-y-4">
               <SEOOptimizationDashboard />
