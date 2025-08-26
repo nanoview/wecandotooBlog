@@ -460,14 +460,32 @@ REVOKE ALL ON TABLE public.profiles FROM PUBLIC;
 
 -- Self-access policy
 DROP POLICY IF EXISTS "profiles_self_rw" ON public.profiles;
-CREATE POLICY "profiles_self_rw" ON public.profiles
-FOR SELECT USING (auth.uid() = user_id)
+DROP POLICY IF EXISTS "profiles_self_select" ON public.profiles;
+DROP POLICY IF EXISTS "profiles_self_update" ON public.profiles;
+DROP POLICY IF EXISTS "profiles_self_insert" ON public.profiles;
+
+-- Users can read only their own profile
+CREATE POLICY "profiles_self_select" ON public.profiles
+FOR SELECT USING (auth.uid() = user_id);
+
+-- Users can update only their own profile
+CREATE POLICY "profiles_self_update" ON public.profiles
+FOR UPDATE USING (auth.uid() = user_id)
 WITH CHECK (auth.uid() = user_id);
+
+-- Users can insert only a row for themselves
+CREATE POLICY "profiles_self_insert" ON public.profiles
+FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- Admin full access policy
 DROP POLICY IF EXISTS "profiles_admin_all" ON public.profiles;
 CREATE POLICY "profiles_admin_all" ON public.profiles
 FOR ALL USING (
+  auth.uid() IN (
+    SELECT user_id FROM public.profiles WHERE role IN ('admin','super_admin')
+  )
+)
+WITH CHECK (
   auth.uid() IN (
     SELECT user_id FROM public.profiles WHERE role IN ('admin','super_admin')
   )
@@ -492,6 +510,13 @@ FOR SELECT USING (status = 'published');
 DROP POLICY IF EXISTS "blog_posts_author_write" ON public.blog_posts;
 CREATE POLICY "blog_posts_author_write" ON public.blog_posts
 FOR ALL USING (
+  auth.uid() = author_id 
+  OR auth.uid() IN (
+    SELECT user_id FROM profiles 
+    WHERE role IN ('admin', 'super_admin')
+  )
+)
+WITH CHECK (
   auth.uid() = author_id 
   OR auth.uid() IN (
     SELECT user_id FROM profiles 
