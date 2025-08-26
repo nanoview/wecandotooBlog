@@ -112,8 +112,8 @@ SELECT
   pi.id,
   pi.post_id,
   pi.session_id,
-  -- Hash sensitive data
-  encode(digest(COALESCE(pi.ip_address, '0.0.0.0'), 'sha256'), 'hex') as hashed_ip,
+    -- Hash IP address for privacy (cast inet to text for digest)
+    encode(digest(COALESCE(pi.ip_address, '0.0.0.0')::text, 'sha256'), 'hex') as hashed_ip,
   pi.created_at,
   bp.title,
   bp.slug

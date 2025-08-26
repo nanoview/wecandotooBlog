@@ -8,6 +8,9 @@
 -- 3. Visitor Privacy Data Protection
 -- ============================================================================
 
+-- Ensure required cryptographic extension for hashing/encryption
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- ============================================================================
 -- 1. FIX SECURITY DEFINER VIEWS (Critical Security Error)
 -- ============================================================================
@@ -84,8 +87,8 @@ ORDER BY bp.updated_at DESC;
 CREATE TABLE IF NOT EXISTS public.secure_oauth_config (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   service_name TEXT NOT NULL UNIQUE,
-  encrypted_client_id TEXT,
-  encrypted_client_secret TEXT,
+  encrypted_client_id BYTEA,
+  encrypted_client_secret BYTEA,
   redirect_uris JSONB,
   scopes JSONB,
   is_active BOOLEAN DEFAULT true,
@@ -94,8 +97,88 @@ CREATE TABLE IF NOT EXISTS public.secure_oauth_config (
   created_by UUID REFERENCES auth.users(id)
 );
 
+-- If table pre-existed with TEXT columns, attempt safe type upgrade to BYTEA
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema='public' AND table_name='secure_oauth_config' AND column_name='encrypted_client_id' AND data_type <> 'bytea'
+  ) THEN
+    BEGIN
+      ALTER TABLE public.secure_oauth_config 
+        ALTER COLUMN encrypted_client_id TYPE BYTEA USING NULLIF(encrypted_client_id,'')::bytea;
+    EXCEPTION WHEN OTHERS THEN
+      -- leave as-is if migration cannot be applied
+      PERFORM 1;
+    END;
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema='public' AND table_name='secure_oauth_config' AND column_name='encrypted_client_secret' AND data_type <> 'bytea'
+  ) THEN
+    BEGIN
+      ALTER TABLE public.secure_oauth_config 
+        ALTER COLUMN encrypted_client_secret TYPE BYTEA USING NULLIF(encrypted_client_secret,'')::bytea;
+    EXCEPTION WHEN OTHERS THEN
+      PERFORM 1;
+    END;
+  END IF;
+END $$;
+
 -- Enable RLS on OAuth config table
 ALTER TABLE public.secure_oauth_config ENABLE ROW LEVEL SECURITY;
+
+-- Prevent direct public access to secrets
+REVOKE ALL ON TABLE public.secure_oauth_config FROM PUBLIC;
+
+-- Setter: only service_role may upsert encrypted secrets
+CREATE OR REPLACE FUNCTION public.set_oauth_secret(
+  p_service_name TEXT,
+  p_client_id TEXT,
+  p_client_secret TEXT,
+  p_encryption_key TEXT,
+  p_redirect_uris JSONB DEFAULT '[]'::jsonb,
+  p_scopes JSONB DEFAULT '[]'::jsonb
+) RETURNS VOID
+SECURITY DEFINER
+SET search_path = ''
+LANGUAGE plpgsql AS $$
+DECLARE
+  claims JSON;
+BEGIN
+  claims := COALESCE(current_setting('request.jwt.claims', true), '{}')::json;
+  IF COALESCE(claims->>'role','') <> 'service_role' THEN
+    RAISE EXCEPTION 'forbidden: service_role required';
+  END IF;
+
+  INSERT INTO public.secure_oauth_config (
+    service_name,
+    encrypted_client_id,
+    encrypted_client_secret,
+    redirect_uris,
+    scopes,
+    is_active,
+    created_by,
+    updated_at
+  ) VALUES (
+    p_service_name,
+    pgp_sym_encrypt(p_client_id, p_encryption_key),
+    pgp_sym_encrypt(p_client_secret, p_encryption_key),
+    p_redirect_uris,
+    p_scopes,
+    true,
+    auth.uid(),
+    NOW()
+  )
+  ON CONFLICT (service_name)
+  DO UPDATE SET
+    encrypted_client_id = EXCLUDED.encrypted_client_id,
+    encrypted_client_secret = EXCLUDED.encrypted_client_secret,
+    redirect_uris = EXCLUDED.redirect_uris,
+    scopes = EXCLUDED.scopes,
+    is_active = EXCLUDED.is_active,
+    updated_at = NOW();
+END $$;
 
 -- Only allow super admins to access OAuth secrets
 CREATE POLICY "oauth_config_admin_only" ON public.secure_oauth_config
@@ -227,8 +310,8 @@ SELECT
   pi.id,
   pi.post_id,
   pi.session_id,
-  -- Hash IP address for privacy
-  encode(digest(pi.ip_address, 'sha256'), 'hex') as hashed_ip,
+  -- Hash IP address for privacy (cast inet to text for digest)
+  encode(digest(pi.ip_address::text, 'sha256'), 'hex') as hashed_ip,
   -- Anonymize user agent
   CASE 
     WHEN pi.privacy_consent = true THEN pi.user_agent
@@ -246,6 +329,23 @@ WHERE
   -- And not expired based on retention policy
   AND (pi.data_retention_date IS NULL OR pi.data_retention_date > NOW())
 ORDER BY pi.created_at DESC;
+
+-- Restrict raw analytics; expose only an aggregated public summary
+REVOKE ALL ON TABLE public.post_impressions FROM PUBLIC;
+
+DROP VIEW IF EXISTS public.public_analytics_summary CASCADE;
+CREATE VIEW public.public_analytics_summary AS
+SELECT 
+  bp.slug,
+  date_trunc('day', pi.created_at) AS day,
+  COUNT(*)::bigint AS views
+FROM public.post_impressions pi
+JOIN public.blog_posts bp ON bp.id = pi.post_id::uuid
+WHERE bp.status = 'published'
+GROUP BY bp.slug, date_trunc('day', pi.created_at)
+ORDER BY day DESC, views DESC;
+
+GRANT SELECT ON public.public_analytics_summary TO anon, authenticated;
 
 -- Create function to anonymize expired visitor data
 CREATE OR REPLACE FUNCTION public.anonymize_expired_visitor_data()
@@ -354,6 +454,35 @@ END $$;
 ALTER TABLE public.blog_posts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.post_impressions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+-- Prevent bulk access to raw profiles data
+REVOKE ALL ON TABLE public.profiles FROM PUBLIC;
+
+-- Self-access policy
+DROP POLICY IF EXISTS "profiles_self_rw" ON public.profiles;
+CREATE POLICY "profiles_self_rw" ON public.profiles
+FOR SELECT USING (auth.uid() = user_id)
+WITH CHECK (auth.uid() = user_id);
+
+-- Admin full access policy
+DROP POLICY IF EXISTS "profiles_admin_all" ON public.profiles;
+CREATE POLICY "profiles_admin_all" ON public.profiles
+FOR ALL USING (
+  auth.uid() IN (
+    SELECT user_id FROM public.profiles WHERE role IN ('admin','super_admin')
+  )
+);
+
+-- Public-safe minimal profile view
+DROP VIEW IF EXISTS public.public_profiles CASCADE;
+CREATE VIEW public.public_profiles AS
+SELECT 
+  p.user_id,
+  p.username,
+  p.display_name
+FROM public.profiles p;
+
+GRANT SELECT ON public.public_profiles TO anon, authenticated;
 
 -- Create secure policies for blog_posts
 DROP POLICY IF EXISTS "blog_posts_public_read" ON public.blog_posts;

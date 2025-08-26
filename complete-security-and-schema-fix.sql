@@ -18,6 +18,30 @@ BEGIN
         RAISE NOTICE 'Added user_id column to post_impressions';
     END IF;
     
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'post_impressions' AND column_name = 'ip_address') THEN
+        ALTER TABLE post_impressions ADD COLUMN ip_address INET;
+        RAISE NOTICE 'Added ip_address column to post_impressions';
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'post_impressions' AND column_name = 'user_agent') THEN
+        ALTER TABLE post_impressions ADD COLUMN user_agent TEXT;
+        RAISE NOTICE 'Added user_agent column to post_impressions';
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'post_impressions' AND column_name = 'referrer') THEN
+        ALTER TABLE post_impressions ADD COLUMN referrer TEXT;
+        RAISE NOTICE 'Added referrer column to post_impressions';
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'post_impressions' AND column_name = 'session_id') THEN
+        ALTER TABLE post_impressions ADD COLUMN session_id TEXT;
+        RAISE NOTICE 'Added session_id column to post_impressions';
+    END IF;
+    
     -- Add missing columns to profiles if they don't exist
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
                    WHERE table_name = 'profiles' AND column_name = 'username') THEN
