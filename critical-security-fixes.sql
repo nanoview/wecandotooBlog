@@ -181,6 +181,7 @@ BEGIN
 END $$;
 
 -- Only allow super admins to access OAuth secrets
+DROP POLICY IF EXISTS "oauth_config_admin_only" ON public.secure_oauth_config;
 CREATE POLICY "oauth_config_admin_only" ON public.secure_oauth_config
 FOR ALL USING (
   auth.uid() IN (
@@ -230,6 +231,7 @@ CREATE TABLE IF NOT EXISTS public.oauth_access_log (
 ALTER TABLE public.oauth_access_log ENABLE ROW LEVEL SECURITY;
 
 -- Only admins can view OAuth access logs
+DROP POLICY IF EXISTS "oauth_log_admin_only" ON public.oauth_access_log;
 CREATE POLICY "oauth_log_admin_only" ON public.oauth_access_log
 FOR SELECT USING (
   auth.uid() IN (
@@ -404,6 +406,7 @@ CREATE TABLE IF NOT EXISTS public.privacy_audit_log (
 ALTER TABLE public.privacy_audit_log ENABLE ROW LEVEL SECURITY;
 
 -- Only admins can view privacy audit logs
+DROP POLICY IF EXISTS "privacy_audit_admin_only" ON public.privacy_audit_log;
 CREATE POLICY "privacy_audit_admin_only" ON public.privacy_audit_log
 FOR SELECT USING (
   auth.uid() IN (
@@ -564,6 +567,7 @@ CREATE TABLE IF NOT EXISTS public.security_incidents (
 ALTER TABLE public.security_incidents ENABLE ROW LEVEL SECURITY;
 
 -- Only admins can view security incidents
+DROP POLICY IF EXISTS "security_incidents_admin_only" ON public.security_incidents;
 CREATE POLICY "security_incidents_admin_only" ON public.security_incidents
 FOR ALL USING (
   auth.uid() IN (
