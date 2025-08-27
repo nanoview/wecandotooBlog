@@ -1,10 +1,15 @@
-// Simple Node.js script to check database schema
+// Simple Node.js script to check database schema (no secrets in source)
 import pkg from 'pg';
 const { Client } = pkg;
 
-const client = new Client({
-  connectionString: 'postgresql://postgres:Hrp23C1fzJFVxLX3@db.rowcloxlszwnowlggqon.supabase.co:5432/postgres'
-});
+// Read DATABASE_URL from environment. Do NOT hardcode credentials here.
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+  console.error('DATABASE_URL is not set. Export it in your environment or .env (not committed).');
+  process.exit(1);
+}
+
+const client = new Client({ connectionString });
 
 async function checkSchema() {
   try {
