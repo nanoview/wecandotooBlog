@@ -2,6 +2,9 @@ import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 
+// Production URL checker to prevent blob URL issues
+import './utils/productionUrlChecker'
+
 // Register service worker for PWA using vite-plugin-pwa
 import { registerSW } from 'virtual:pwa-register'
 

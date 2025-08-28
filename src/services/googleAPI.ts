@@ -1,7 +1,18 @@
 // Google OAuth and API configuration
+const getRedirectUri = () => {
+  // Use environment variable if set, otherwise detect current domain
+  if (import.meta.env.VITE_GOOGLE_OAUTH_REDIRECT_URI) {
+    return import.meta.env.VITE_GOOGLE_OAUTH_REDIRECT_URI;
+  }
+  
+  // Auto-detect current domain for redirect URI
+  const currentOrigin = window.location.origin;
+  return `${currentOrigin}/admin`;
+};
+
 export const googleOAuthConfig = {
   clientId: import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID || '',
-  redirectUri: import.meta.env.VITE_GOOGLE_OAUTH_REDIRECT_URI || `http://localhost:8080/oauth/callback`,
+  redirectUri: getRedirectUri(),
   scopes: [
     'https://www.googleapis.com/auth/adsense.readonly',
     'https://www.googleapis.com/auth/analytics.readonly',

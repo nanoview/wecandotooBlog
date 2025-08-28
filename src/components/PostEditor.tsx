@@ -12,9 +12,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useAutoImageUpload } from '@/hooks/useAutoImageUpload';
 import RichTextEditor from '@/components/RichTextEditor';
 import ImageUploader from '@/components/ImageUploader';
 import { handleImagePaste, uploadImage, validateImageFile, generateImageHTML, type UploadedImage } from '@/services/imageUploadService';
+import { validateContentForProduction, hasBlobUrls } from '@/utils/blobUrlUtils';
 
 interface PostEditorProps {
   isOpen: boolean;
@@ -289,6 +291,18 @@ const PostEditor: React.FC<PostEditorProps> = ({
     }
 
     calculateReadTime();
+
+    // Check for blob URLs in content
+    const contentValidation = validateContentForProduction(content);
+    if (!contentValidation.isValid && status === 'published') {
+      toast({
+        title: "Images Not Uploaded",
+        description: "Some images are still being processed. Please wait for upload to complete before publishing.",
+        variant: "destructive"
+      });
+      console.warn('📷 Blob URLs found in content:', contentValidation.issues);
+      return;
+    }
 
     try {
       const postData = {

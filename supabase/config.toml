@@ -11,13 +11,17 @@ max_rows = 1000
 enabled = true
 site_url = "https://wecandotoo.com"
 additional_redirect_urls = [
-  "https://wecandotoo.com", 
+  "https://wecandotoo.com",
   "https://wecandotoo.com/auth/confirm",
   "https://wecandotoo.com/auth/reset-password", 
   "https://wecandotoo.com/confirm-subscription",
+  "https://wecandotoo.com/admin",
+  "https://wecandotoo.com/oauth/callback",
   "http://localhost:8080",
   "http://localhost:8080/auth/confirm",
-  "http://localhost:8080/confirm-subscription"
+  "http://localhost:8080/confirm-subscription",
+  "http://localhost:8080/admin",
+  "http://localhost:8080/oauth/callback"
 ]
 jwt_expiry = 3600
 enable_signup = true
