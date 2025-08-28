@@ -1,7 +1,41 @@
 {
-  "name": "wecandotoo",
-  "private": true,
-  "version": "0.0.0",
+  "name": "wecandotoo-blog-platform",
+  "description": "Complete React TypeScript blog platform with Supabase backend - Open source blogging solution with CMS, SEO optimization, and modern UI",
+  "keywords": [
+    "react",
+    "typescript",
+    "blog",
+    "cms",
+    "blog-platform",
+    "react-blog",
+    "typescript-blog",
+    "vite",
+    "supabase",
+    "tailwind",
+    "blogging",
+    "content-management",
+    "open-source",
+    "react-cms",
+    "blog-template",
+    "starter-template",
+    "react-typescript"
+  ],
+  "homepage": "https://wecandotoo.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nanoview/wecandotooBlog.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nanoview/wecandotooBlog/issues"
+  },
+  "author": {
+    "name": "Arif",
+    "email": "arif.js@gmail.com",
+    "url": "https://github.com/nanoview"
+  },
+  "license": "MIT",
+  "private": false,
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",

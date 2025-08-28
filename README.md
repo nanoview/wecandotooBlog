@@ -1,10 +1,21 @@
-# WeCanDoToo - Your Complete Blog Platform 🚀
+# WeCanDoToo - React TypeScript Blog Platform | Open Source Blogging Solution 🚀
 
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-Visit%20Site-brightgreen?style=for-the-badge&logo=vercel)](https://wecandotoo.com)
 [![Support](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Support%20Development-orange?style=for-the-badge&logo=buy-me-a-coffee)](mailto:arif.js@gmail.com?subject=WeCanDoToo%20Support)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)](LICENSE)
+[![GitHub Stars](https://img.shields.io/github/stars/nanoview/wecandotooBlog?style=for-the-badge)](https://github.com/nanoview/wecandotooBlog/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/nanoview/wecandotooBlog?style=for-the-badge)](https://github.com/nanoview/wecandotooBlog/network)
 
-**Transform your ideas into a powerful blog in minutes!** WeCanDoToo is a complete, ready-to-use blog platform that anyone can set up - no coding experience required.
+**🔥 The Ultimate Open Source Blog Platform Built with React TypeScript** 
+
+Transform your ideas into a powerful blog in minutes! WeCanDoToo is a complete, production-ready blog platform that anyone can set up - no coding experience required. Perfect for developers looking for React TypeScript blogging code, content creators wanting a professional platform, and businesses establishing their online presence.
+
+## 🏷️ **Keywords & Technologies**
+
+**Frontend:** React 18, TypeScript, Vite, Tailwind CSS, Radix UI, React Query, React Hook Form  
+**Backend:** Supabase, PostgreSQL, Edge Functions, Deno Runtime  
+**Features:** Blog CMS, SEO Optimization, Email Integration, Analytics, Admin Dashboard  
+**Use Cases:** Personal Blogging, Business Blog, Content Management System, Portfolio Website
 
 ## 🌟 What Makes WeCanDoToo Special?
 

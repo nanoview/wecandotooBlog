@@ -1,0 +1,45 @@
+name: 🚀 Feature Request
+description: Suggest a new feature for this React TypeScript blog platform
+title: "[FEATURE] "
+labels: ["enhancement", "react", "typescript", "blog-platform"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this feature request for our React TypeScript blogging platform!
+        
+  - type: textarea
+    id: feature-description
+    attributes:
+      label: Feature Description
+      description: A clear and concise description of what you want to happen.
+      placeholder: Tell us about the feature you'd like to see in this blog platform...
+    validations:
+      required: true
+      
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use Case
+      description: Describe the problem this feature would solve.
+      placeholder: Explain how this would improve the blogging experience...
+    validations:
+      required: true
+      
+  - type: textarea
+    id: implementation
+    attributes:
+      label: Proposed Implementation
+      description: How do you think this could be implemented?
+      placeholder: Any ideas about the technical implementation in React/TypeScript...
+    validations:
+      required: false
+      
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: By submitting this issue, you agree to follow our Code of Conduct
+      options:
+        - label: I agree to follow this project's Code of Conduct
+          required: true

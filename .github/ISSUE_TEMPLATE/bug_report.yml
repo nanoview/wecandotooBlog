@@ -1,0 +1,68 @@
+name: 🐛 Bug Report
+description: Report a bug in this React TypeScript blog platform
+title: "[BUG] "
+labels: ["bug", "react", "typescript", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug in our React TypeScript blogging platform!
+        
+  - type: textarea
+    id: bug-description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+      placeholder: Describe what happened...
+    validations:
+      required: true
+      
+  - type: textarea
+    id: reproduction-steps
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior
+      placeholder: |
+        1. Go to '...'
+        2. Click on '....'
+        3. Scroll down to '....'
+        4. See error
+    validations:
+      required: true
+      
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected Behavior
+      description: A clear and concise description of what you expected to happen.
+      placeholder: What should have happened?
+    validations:
+      required: true
+      
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: |
+        examples:
+          - **OS**: Ubuntu 20.04
+          - **Browser**: Chrome 91
+          - **Node Version**: 16.x
+          - **Package Manager**: npm
+      value: |
+        - OS: 
+        - Browser: 
+        - Node Version: 
+        - Package Manager: 
+      render: markdown
+    validations:
+      required: false
+      
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Add any other context about the problem here.
+      placeholder: Any additional information that might help...
+    validations:
+      required: false
