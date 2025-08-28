@@ -18,11 +18,10 @@ export const subscribeToNewsletter = async (email: string) => {
     console.log('Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
     console.log('Supabase client configured:', !!supabase);
     
-    // Call the newsletter-subscription edge function
-    const { data, error } = await supabase.functions.invoke('newsletter-subscription', {
+    // Try simple-newsletter function first as fallback
+    const { data, error } = await supabase.functions.invoke('simple-newsletter', {
       body: {
-        email: email.toLowerCase().trim(),
-        action: 'subscribe'
+        email: email.toLowerCase().trim()
       }
     });
 

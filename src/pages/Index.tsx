@@ -83,9 +83,9 @@ const Index = () => {
       setLoading(true);
       console.log('🚀 Loading initial data...');
       
-      // Load posts and categories in parallel
+      // Load posts and categories in parallel with limits
       const [postsData, categoriesData] = await Promise.all([
-        fetchBlogPosts().catch((error) => {
+        fetchBlogPosts(12).catch((error) => { // Limit to 12 posts for homepage
           console.error('❌ Error fetching posts:', error);
           return [];
         }), // Return empty array on error
@@ -113,7 +113,7 @@ const Index = () => {
 
   const loadBlogPosts = useCallback(async () => {
     try {
-      const posts = await fetchBlogPosts();
+      const posts = await fetchBlogPosts(20); // Limit to 20 posts
       setBlogPosts(posts);
     } catch (error) {
       console.error('Error loading blog posts:', error);
@@ -179,7 +179,7 @@ const Index = () => {
     try {
       if (category === 'All') {
         console.log('📄 Fetching all posts...');
-        const allPosts = await fetchBlogPosts();
+        const allPosts = await fetchBlogPosts(50); // Limit to 50 posts for "All" category
         console.log('✅ Received all posts:', allPosts.length);
         setBlogPosts(allPosts);
       } else {

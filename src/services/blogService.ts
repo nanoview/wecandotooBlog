@@ -127,9 +127,9 @@ export const generateSlug = (title: string): string => {
 };
 
 // Fetch published blog posts with author information
-export const fetchBlogPosts = async (limit?: number): Promise<BlogPost[]> => {
+export const fetchBlogPosts = async (limit: number = 20): Promise<BlogPost[]> => {
   try {
-    console.log('🔍 Fetching blog posts from database...');
+    console.log('🔍 Fetching blog posts from database with limit:', limit);
     
     let query = supabase
       .from('blog_posts')
@@ -148,11 +148,8 @@ export const fetchBlogPosts = async (limit?: number): Promise<BlogPost[]> => {
         status
       `)
       .eq('status', 'published')
-      .order('published_at', { ascending: false });
-
-    if (limit) {
-      query = query.limit(limit);
-    }
+      .order('published_at', { ascending: false })
+      .limit(limit); // Always apply a limit
 
     const { data, error } = await query;
 
