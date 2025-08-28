@@ -98,10 +98,12 @@ Transform your ideas into a powerful blog in minutes! WeCanDoToo is a complete, 
 - ✅ Willingness to follow step-by-step instructions
 
 #### The Process:
-1. **[📖 Read Our Beginner's Guide](INSTALLATION_GUIDE.md)** - Everything explained in simple terms
-2. **🔧 Follow the Setup Steps** - Copy, paste, and click your way to success
-3. **🎨 Customize Your Blog** - Make it uniquely yours
-4. **🚀 Launch Your Blog** - Share it with the world!
+1. **[📖 Quick Production Setup](docs/QUICK_PRODUCTION_SETUP.md)** - Get your keys and deploy in 10 minutes
+2. **[🔑 Get Supabase Keys](docs/GET_SUPABASE_KEYS.md)** - Get your database credentials  
+3. **[� Google OAuth Setup](docs/GOOGLE_OAUTH_SETUP.md)** - Set up Google integration
+4. **[📖 Complete Installation Guide](INSTALLATION_GUIDE.md)** - Full setup instructions
+5. **🎨 Customize Your Blog** - Make it uniquely yours
+6. **🚀 Launch Your Blog** - Share it with the world!
 
 *Don't worry - our guides are written for complete beginners!*
 
