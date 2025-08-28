@@ -1,8 +1,15 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Your Supabase credentials (get these from your Supabase dashboard)
-const supabaseUrl = 'https://rowcloxlszwnowlggqon.supabase.co'
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJvd2Nsb3hsc3p3bm93bGdncW9uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjIzNjg1OTYsImV4cCI6MjAzNzk0NDU5Nn0.v62YxIhBGGmYd2K3gCmqPJJIwY7EpMuqJBuaLRJQd0A' // Your anon key
+import { createClient } from '@supabase/supabase-js'
+
+// ⚠️ SECURITY: Load from environment variables - never hardcode tokens!
+const supabaseUrl = process.env.VITE_SUPABASE_URL || 'your_supabase_url_here'
+const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || 'your_supabase_anon_key_here'
+
+if (!supabaseUrl || !supabaseKey || supabaseUrl.includes('your_') || supabaseKey.includes('your_')) {
+  console.error('❌ Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables')
+  process.exit(1)
+}
 
 const supabase = createClient(supabaseUrl, supabaseKey)
 

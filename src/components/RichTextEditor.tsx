@@ -23,19 +23,19 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // NUCLEAR SAFETY: Global content size monitor
+  // Content size monitor - allow large content up to reasonable limits
   useEffect(() => {
     const monitor = setInterval(() => {
       if (editorRef.current) {
         const currentSize = editorRef.current.innerHTML.length;
-        if (currentSize > 8000) { // 8KB emergency limit
-          console.error('🚨🚨🚨 GLOBAL MONITOR: Content explosion detected:', currentSize);
-          editorRef.current.innerHTML = '<p>Content automatically reset by safety monitor</p>';
-          alert('Content size monitor detected an explosion and reset the editor for safety.');
+        if (currentSize > 10000000) { // 10MB emergency limit for editor
+          console.error('🚨🚨🚨 GLOBAL MONITOR: Content size limit exceeded:', currentSize);
+          editorRef.current.innerHTML = '<p>Content automatically reset by safety monitor - content was too large (>10MB)</p>';
+          alert('Content size monitor detected content exceeding 10MB and reset the editor for performance.');
           clearInterval(monitor);
         }
       }
-    }, 500); // Check every 500ms
+    }, 1000); // Check every 1 second
 
     return () => clearInterval(monitor);
   }, []);
@@ -89,23 +89,23 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       
       console.log('🔄 RichTextEditor - Processing content, size:', html.length);
       
-      // NUCLEAR OPTION: Immediate circuit breaker at 5KB
-      if (html.length > 5000) { // 5KB limit - extremely aggressive
-        console.error('🚨🚨🚨 NUCLEAR: Content explosion detected:', html.length, 'characters');
+      // Content size check - allow reasonable large content
+      if (html.length > 5000000) { // 5MB limit for editor content
+        console.error('🚨🚨🚨 CONTENT SIZE: Large content detected:', html.length, 'characters');
         console.error('🚨 Content limit: ' + html.length);
         
         // HARD RESET: Clear everything immediately
         if (editorRef.current) {
-          editorRef.current.innerHTML = '<p>⚠️ Content reset - size limit exceeded (5KB max)</p>';
+          editorRef.current.innerHTML = '<p>⚠️ Content reset - size limit exceeded (5MB max)</p>';
           // Force a re-render to break any loops
           setTimeout(() => {
             if (editorRef.current) {
-              editorRef.current.innerHTML = '<p>Please paste content in small chunks</p>';
+              editorRef.current.innerHTML = '<p>Please reduce content size - maximum 5MB supported</p>';
             }
           }, 100);
         }
         
-        alert('CRITICAL: Content size exceeded 5KB limit. Editor reset for safety. Please work with much smaller content.');
+        alert('CRITICAL: Content size exceeded 5MB limit. Editor reset for performance. Please use smaller content.');
         return;
       }
       
@@ -116,7 +116,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       }
       
       // Check for content duplication patterns (common in infinite loops)
-      if (html.length > 50000) { // Only check for large content
+      if (html.length > 1000000) { // Only check for very large content (1MB+)
         const contentPreview = html.substring(0, 100);
         const duplicateMatches = (html.match(new RegExp(contentPreview.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length;
         if (duplicateMatches > 10) {

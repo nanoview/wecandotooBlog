@@ -204,7 +204,7 @@ export const generateImageHTML = (image: UploadedImage, className?: string): str
  * Validate image file
  */
 export const validateImageFile = (file: File): { valid: boolean; error?: string } => {
-  const maxSize = 5 * 1024 * 1024; // 5MB
+  const maxSize = 200 * 1024 * 1024; // 200MB
   const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
   
   if (!allowedTypes.includes(file.type)) {
@@ -212,7 +212,7 @@ export const validateImageFile = (file: File): { valid: boolean; error?: string 
   }
   
   if (file.size > maxSize) {
-    return { valid: false, error: 'Image size must be less than 5MB' };
+    return { valid: false, error: 'Image size must be less than 200MB' };
   }
   
   return { valid: true };

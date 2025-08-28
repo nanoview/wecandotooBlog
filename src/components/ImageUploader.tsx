@@ -70,7 +70,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
 
       // Compress image if it's large
       let fileToUpload = file;
-      if (file.size > 1024 * 1024) { // 1MB
+      if (file.size > 50 * 1024 * 1024) { // 50MB - only compress very large files
         fileToUpload = await compressImage(file, 0.8);
       }
 

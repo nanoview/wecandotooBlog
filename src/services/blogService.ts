@@ -602,10 +602,10 @@ export const createBlogPost = async (postData: {
   try {
     console.log('📝 Creating new blog post:', postData.title);
     
-    // EMERGENCY CONTENT SIZE CHECK
-    if (postData.content && postData.content.length > 100000) { // 100KB absolute limit
+    // Content size check for 10,000+ word support
+    if (postData.content && postData.content.length > 500000) { // 500KB limit (supports ~80,000 words)
       console.error('🚨🚨🚨 EMERGENCY: Content too large for create:', postData.content.length);
-      throw new Error(`Content too large: ${postData.content.length} characters. Maximum allowed: 100,000 characters.`);
+      throw new Error(`Content too large: ${postData.content.length} characters. Maximum allowed: 500,000 characters (~80,000 words).`);
     }
     
     // Get current user
@@ -713,19 +713,19 @@ export const updateBlogPost = async (
   try {
     console.log('📝 Updating blog post:', postId, postData);
     
-    // EMERGENCY: Super aggressive content size check
-    if (postData.content && postData.content.length > 50000) { // 50KB limit - very aggressive
+    // Content size check - allow for large content up to 200MB worth of data
+    if (postData.content && postData.content.length > 50000000) { // 50MB character limit for content
       console.error('🚨🚨🚨 EMERGENCY: Content too large!', postData.content.length, 'characters');
       console.error('🚨 Content limit: ' + postData.content.length);
-      throw new Error(`EMERGENCY: Content is too large (${Math.round(postData.content.length / 1024)}KB). Maximum allowed: 50KB. Please use shorter content.`);
+      throw new Error(`EMERGENCY: Content is too large (${Math.round(postData.content.length / 1024 / 1024)}MB). Maximum allowed: 50MB. Please use shorter content.`);
     }
     
-    // Check total data size with aggressive limit
+    // Check total data size with reasonable limit for large content
     const totalDataSize = JSON.stringify(postData).length;
-    if (totalDataSize > 100000) { // 100KB total data limit
+    if (totalDataSize > 50000000) { // 50MB total data limit (approximately 200MB content capacity)
       console.error('🚨🚨🚨 EMERGENCY: Total post data too large!', totalDataSize, 'characters');
       console.error('🚨 Content limit: ' + totalDataSize);
-      throw new Error(`EMERGENCY: Post data is too large (${Math.round(totalDataSize / 1024)}KB). Maximum allowed: 100KB.`);
+      throw new Error(`EMERGENCY: Post data is too large (${Math.round(totalDataSize / 1024 / 1024)}MB). Maximum allowed: 50MB.`);
     }
     
     // Get current user
@@ -747,10 +747,10 @@ export const updateBlogPost = async (
       console.log('📊 Content size:', postData.content.length, 'characters');
       console.log('📊 Content preview (first 200 chars):', postData.content.substring(0, 200));
       
-      // Check for extremely large content (over 1MB)
-      if (postData.content.length > 1024 * 1024) {
+      // Check for extremely large content (over 50MB)
+      if (postData.content.length > 50 * 1024 * 1024) {
         console.warn('⚠️ Content is very large:', postData.content.length, 'characters (~', Math.round(postData.content.length / 1024 / 1024), 'MB)');
-        throw new Error(`Content is too large (${Math.round(postData.content.length / 1024 / 1024)}MB). Please reduce content size.`);
+        throw new Error(`Content is too large (${Math.round(postData.content.length / 1024 / 1024)}MB). Please reduce content size to under 50MB.`);
       }
       
       // Store the HTML content directly since we're using RichTextEditor
@@ -895,9 +895,9 @@ export const updateBlogPost = async (
     try {
       const jsonTest = JSON.stringify(updateDataToSend);
       console.log('🚨 JSON serialization test passed, size:', jsonTest.length);
-      if (jsonTest.length > 1000000) {
+      if (jsonTest.length > 50000000) { // 50MB JSON limit
         console.error('🚨 JSON is too large!', jsonTest.length);
-        throw new Error(`Serialized data too large: ${Math.round(jsonTest.length / 1024 / 1024)}MB`);
+        throw new Error(`Serialized data too large: ${Math.round(jsonTest.length / 1024 / 1024)}MB - maximum 50MB allowed`);
       }
     } catch (error) {
       console.error('🚨 JSON serialization failed:', error);
@@ -939,7 +939,7 @@ export const updateBlogPost = async (
               console.log('🚨 Trying with minimal data...');
               const minimalData = {
                 title: updateDataToSend.title,
-                content: updateDataToSend.content?.substring(0, 50000) || '', // Truncate content if too large
+                content: updateDataToSend.content?.substring(0, 10000000) || '', // Truncate content to 10MB if too large
                 updated_at: updateDataToSend.updated_at
               };
               

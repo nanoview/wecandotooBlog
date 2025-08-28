@@ -329,19 +329,19 @@ const PostEditor: React.FC<PostEditorProps> = ({
       console.log('📊 PostEditor - Content preview:', content.substring(0, 200));
       console.log('📊 PostEditor - Tags being saved:', tags, 'Type:', typeof tags, 'Array?', Array.isArray(tags));
       
-      // CRITICAL: Check for content explosion
-      if (content.length > 1000000) { // 1MB
+      // Check for content explosion
+      if (content.length > 50000000) { // 50MB
         console.error('🚨 CRITICAL: Content explosion detected!', content.length, 'characters');
         console.error('🚨 Content preview:', content.substring(0, 500));
         toast({
           title: "Content Too Large",
-          description: `Content has grown to ${Math.round(content.length / 1024 / 1024)}MB. Please refresh the page and start over.`,
+          description: `Content has grown to ${Math.round(content.length / 1024 / 1024)}MB. Please reduce content size to under 50MB.`,
           variant: "destructive"
         });
         return;
       }
       
-      if (content.length > 500000) { // 500KB warning
+      if (content.length > 10000000) { // 10MB warning
         console.warn('⚠️ PostEditor - Content is very large:', content.length, 'characters');
       }
 
@@ -436,11 +436,11 @@ const PostEditor: React.FC<PostEditorProps> = ({
                 </div>
 
                 {/* Emergency Content Reset */}
-                {content.length > 500000 && (
+                {content.length > 10000000 && (
                   <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
                     <h3 className="text-red-800 font-semibold mb-2">⚠️ Content Size Warning</h3>
                     <p className="text-red-700 text-sm mb-3">
-                      Content is very large ({Math.round(content.length / 1024)}KB). This may cause save issues.
+                      Content is very large ({Math.round(content.length / 1024 / 1024)}MB). Consider optimizing for better performance.
                     </p>
                     <Button 
                       variant="destructive" 
