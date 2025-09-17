@@ -28,7 +28,19 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('Missing required parameters: email, confirmationToken, and siteUrl');
     }
 
+    console.log('=== RESEND EMAIL DEBUG ===');
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    console.log('RESEND_API_KEY exists:', !!resendApiKey);
+    console.log('RESEND_API_KEY length:', resendApiKey ? resendApiKey.length : 0);
+    console.log('Email to:', email);
+    console.log('Token:', confirmationToken);
+
+    if (!resendApiKey) {
+      throw new Error('RESEND_API_KEY environment variable is not set');
+    }
+
     const confirmationUrl = `${siteUrl}/confirm-subscription?token=${confirmationToken}`;
+    console.log('Confirmation URL:', confirmationUrl);
     
     const emailResponse = await resend.emails.send({
       from: "WeCanDoToo <hello@wecandotoo.com>",

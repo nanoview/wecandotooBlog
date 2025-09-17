@@ -105,6 +105,39 @@ export const generateImageSEO = (
 };
 
 /**
+ * Check if storage bucket is available and accessible
+ */
+export const checkStorageAvailability = async (): Promise<{
+  available: boolean;
+  error?: string;
+}> => {
+  try {
+    // Try to list the bucket to see if it exists and is accessible
+    const { data, error } = await supabase.storage
+      .from('blog-images')
+      .list('', { limit: 1 });
+    
+    if (error) {
+      console.error('Storage check failed:', error);
+      return {
+        available: false,
+        error: `Storage not available: ${error.message}`
+      };
+    }
+    
+    return {
+      available: true
+    };
+  } catch (error) {
+    console.error('Storage availability check failed:', error);
+    return {
+      available: false,
+      error: `Storage check failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+    };
+  }
+};
+
+/**
  * Upload image to Supabase storage with SEO optimization
  */
 export const uploadImage = async (
@@ -112,6 +145,12 @@ export const uploadImage = async (
   context?: { title?: string; keywords?: string[]; content?: string }
 ): Promise<UploadedImage> => {
   try {
+    // First, check if storage is available
+    const storageCheck = await checkStorageAvailability();
+    if (!storageCheck.available) {
+      throw new Error(storageCheck.error || 'Storage bucket not available');
+    }
+    
     // Generate SEO-optimized filename
     const seoFilename = generateSEOFilename(file.name, context);
     

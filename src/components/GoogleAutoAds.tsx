@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 const GoogleAutoAds: React.FC = () => {
   // Your AdSense Publisher ID
   const ADSENSE_CLIENT_ID = 'ca-pub-2959602333047653';
+  const [adBlockerDetected, setAdBlockerDetected] = useState(false);
 
   useEffect(() => {
     // Only run on client side
@@ -22,10 +23,29 @@ const GoogleAutoAds: React.FC = () => {
       script.setAttribute('data-ad-client', ADSENSE_CLIENT_ID);
       script.setAttribute('data-adbreak-test', 'on'); // Remove this line in production
       
-      document.head.appendChild(script);
+      // Handle script load success
+      script.onload = () => {
+        console.log('✅ Google Auto Ads loaded successfully');
+        setAdBlockerDetected(false);
+      };
       
-      console.log('✅ Google Auto Ads loaded - ads will appear automatically');
+      // Handle script load error (likely ad blocker)
+      script.onerror = () => {
+        console.log('⚠️ Google Ads blocked (likely by ad blocker) - this is normal');
+        setAdBlockerDetected(true);
+      };
+      
+      document.head.appendChild(script);
     }
+
+    // Additional ad blocker detection
+    setTimeout(() => {
+      // Check if adsbygoogle is available
+      if (typeof window.adsbygoogle === 'undefined') {
+        console.log('⚠️ AdSense not available - ads may be blocked');
+        setAdBlockerDetected(true);
+      }
+    }, 2000);
 
     // Initialize adsbygoogle array for manual ads if needed
     window.adsbygoogle = window.adsbygoogle || [];

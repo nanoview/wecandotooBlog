@@ -9,16 +9,96 @@ export interface Subscriber {
   unsubscribed_at?: string;
   created_at: string;
   updated_at: string;
+  auth_user_id?: string;
+  subscription_type?: 'newsletter_only' | 'signup_and_newsletter';
+  terms_accepted?: boolean;
 }
 
-// Subscribe to newsletter using edge function
+export interface SubscriptionOptions {
+  email: string;
+  password?: string;
+  termsAccepted: boolean;
+  createAccount?: boolean;
+}
+
+// Enhanced subscription with optional account creation
+export const subscribeWithAuth = async (options: SubscriptionOptions) => {
+  try {
+    console.log('=== Enhanced Newsletter Subscription Started ===');
+    console.log('Options:', { ...options, password: options.password ? '[REDACTED]' : undefined });
+    
+    // Validate email before sending
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(options.email)) {
+      throw new Error('Invalid email format');
+    }
+
+    if (!options.termsAccepted) {
+      throw new Error('You must accept the terms and conditions');
+    }
+    
+    const action = options.createAccount && options.password ? 'signup_and_newsletter' : 'newsletter_only';
+    
+    console.log('Calling auth-newsletter-subscription function...');
+    const { data, error } = await supabase.functions.invoke('auth-newsletter-subscription', {
+      body: {
+        email: options.email.toLowerCase().trim(),
+        password: options.password,
+        termsAccepted: options.termsAccepted,
+        action: action
+      }
+    });
+
+    console.log('Response data:', data);
+    console.log('Response error:', error);
+
+    if (error) {
+      console.error('Supabase function error:', error);
+      throw new Error(error.message || 'Failed to process subscription');
+    }
+
+    if (!data || !data.success) {
+      throw new Error(data?.error || 'No response from subscription service');
+    }
+
+    return {
+      success: true,
+      message: data.message,
+      status: data.status,
+      emailSent: data.emailSent,
+      authUserId: data.authUserId,
+      warning: data.warning
+    };
+
+  } catch (error: any) {
+    console.error('Enhanced subscription error:', error);
+    
+    // Fallback to simple newsletter if auth integration fails
+    if (error.message.includes('auth-newsletter-subscription') && !options.createAccount) {
+      console.log('Falling back to simple newsletter subscription...');
+      return await subscribeToNewsletter(options.email);
+    }
+    
+    throw error;
+  }
+};
+
+// Original newsletter-only subscription (kept for backward compatibility)
 export const subscribeToNewsletter = async (email: string) => {
   try {
+    console.log('=== Newsletter Subscription Started ===');
     console.log('Attempting to subscribe:', email);
     console.log('Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
     console.log('Supabase client configured:', !!supabase);
     
+    // Validate email before sending
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      throw new Error('Invalid email format');
+    }
+    
     // Try simple-newsletter function first as fallback
+    console.log('Calling simple-newsletter function...');
     const { data, error } = await supabase.functions.invoke('simple-newsletter', {
       body: {
         email: email.toLowerCase().trim()
@@ -30,26 +110,79 @@ export const subscribeToNewsletter = async (email: string) => {
 
     if (error) {
       console.error('Supabase function error:', error);
+      // Provide more specific error messages
+      if (error.message.includes('duplicate')) {
+        throw new Error('This email is already subscribed to our newsletter');
+      }
       throw new Error(error.message || 'Failed to subscribe to newsletter');
     }
 
+    if (!data) {
+      throw new Error('No response from subscription service');
+    }
+
     if (!data.success) {
-      throw new Error(data.error || 'Subscription failed');
+      console.error('Function returned unsuccessful:', data);
+      throw new Error(data.error || data.message || 'Subscription failed');
     }
 
     console.log('Newsletter subscription successful:', data);
+    console.log('=== Newsletter Subscription Completed ===');
     return data;
   } catch (error: any) {
-    console.error('Newsletter subscription error:', error);
-    throw new Error(error.message || 'Failed to subscribe to newsletter');
+    console.error('=== Newsletter Subscription Error ===');
+    console.error('Error details:', error);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    
+    // Try direct database insertion as fallback
+    try {
+      console.log('Attempting direct database fallback...');
+      const { data: dbData, error: dbError } = await supabase
+        .from('newsletter_subscribers')
+        .insert({
+          email: email.toLowerCase().trim(),
+          status: 'confirmed',
+          confirmed_at: new Date().toISOString(),
+          subscribed_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (dbError) {
+        if (dbError.code === '23505') {
+          console.log('Email already exists - treating as success');
+          return {
+            success: true,
+            message: 'Email already subscribed',
+            existing: true
+          };
+        }
+        throw dbError;
+      }
+
+      console.log('Direct database subscription successful:', dbData);
+      return {
+        success: true,
+        message: 'Successfully subscribed via fallback method',
+        subscriber_id: dbData.id
+      };
+    } catch (fallbackError: any) {
+      console.error('Fallback method also failed:', fallbackError);
+      throw new Error(error.message || 'Failed to subscribe to newsletter');
+    }
   }
 };
 
 // Confirm subscription using edge function
-export const confirmSubscription = async (token: string) => {
+export const confirmSubscription = async (token: string, termsAccepted: boolean = false) => {
   try {
     if (!token || token.length < 16) {
       throw new Error('Invalid confirmation token');
+    }
+
+    if (!termsAccepted) {
+      throw new Error('You must accept the terms and conditions to complete your subscription');
     }
 
     // Call the newsletter-subscription edge function
@@ -57,7 +190,8 @@ export const confirmSubscription = async (token: string) => {
       body: {
         email: '', // Not needed for confirmation
         action: 'confirm',
-        token: token
+        token: token,
+        terms_accepted: termsAccepted
       }
     });
 
@@ -106,7 +240,7 @@ export const unsubscribeFromNewsletter = async (token: string) => {
   }
 };
 
-// Get all subscribers (admin/nanopro only)
+// Get all subscribers (admin only)
 export const getAllSubscribers = async () => {
   try {
     console.log('Fetching all subscribers...');
@@ -120,7 +254,7 @@ export const getAllSubscribers = async () => {
       console.error('Error fetching all subscribers:', error);
       
       if (error.code === '42501' || error.message.includes('permission denied')) {
-        throw new Error('Access denied. Admin privileges or nanopro subscription required.');
+        throw new Error('Access denied. Admin privileges required.');
       }
       
       if (error.code === '42P01') {
@@ -138,7 +272,7 @@ export const getAllSubscribers = async () => {
   }
 };
 
-// Get subscriber statistics (admin/nanopro only)
+// Get subscriber statistics (admin only)
 export const getSubscriberStats = async () => {
   try {
     console.log('Fetching subscriber statistics...');
@@ -151,7 +285,7 @@ export const getSubscriberStats = async () => {
       console.error('Error fetching subscriber stats:', error);
       
       if (error.code === '42501' || error.message.includes('permission denied')) {
-        throw new Error('Access denied. Admin privileges or nanopro subscription required.');
+        throw new Error('Access denied. Admin privileges required.');
       }
       
       throw new Error(`Failed to fetch statistics: ${error.message}`);
@@ -266,23 +400,6 @@ export const updateSubscriberStatus = async (id: string, status: 'pending' | 'co
   }
 };
 
-// Check if current user has nanopro access
-export const checkNanoproAccess = async () => {
-  try {
-    const { data, error } = await supabase.rpc('is_nanopro');
-    
-    if (error) {
-      console.error('Error checking nanopro access:', error);
-      return false;
-    }
-    
-    return data || false;
-  } catch (error) {
-    console.error('Error in checkNanoproAccess:', error);
-    return false;
-  }
-};
-
 // Check if current user has admin role
 export const checkAdminAccess = async () => {
   try {
@@ -323,21 +440,16 @@ export const checkUserRole = async (role: string) => {
 // Get current user's access level
 export const getUserAccessLevel = async () => {
   try {
-    const [isAdmin, isNanopro] = await Promise.all([
-      checkAdminAccess(),
-      checkNanoproAccess()
-    ]);
+    const isAdmin = await checkAdminAccess();
     
     return {
       isAdmin,
-      isNanopro,
-      accessLevel: isAdmin ? 'admin' : isNanopro ? 'nanopro' : 'basic'
+      accessLevel: isAdmin ? 'admin' : 'basic'
     };
   } catch (error) {
     console.error('Error getting user access level:', error);
     return {
       isAdmin: false,
-      isNanopro: false,
       accessLevel: 'basic'
     };
   }

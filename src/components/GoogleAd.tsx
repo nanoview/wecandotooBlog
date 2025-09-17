@@ -17,6 +17,7 @@ const GoogleAd = ({ slot = 'default', layout = 'responsive', className = '' }: G
   const adRef = useRef<HTMLDivElement>(null);
   const [adFailed, setAdFailed] = useState(false);
   const [adLoaded, setAdLoaded] = useState(false);
+  const [adBlockerDetected, setAdBlockerDetected] = useState(false);
 
   // Use a ref to track initialization
   const initializedRef = useRef(false);
@@ -33,6 +34,14 @@ const GoogleAd = ({ slot = 'default', layout = 'responsive', className = '' }: G
 
     // Listen for uncaught errors that might be AdSense related
     window.addEventListener('error', handleAdError);
+    
+    // Check for ad blocker
+    setTimeout(() => {
+      if (typeof window.adsbygoogle === 'undefined') {
+        console.log('GoogleAd: AdSense blocked by ad blocker');
+        setAdBlockerDetected(true);
+      }
+    }, 1000);
     
     return () => {
       window.removeEventListener('error', handleAdError);
@@ -139,6 +148,32 @@ const GoogleAd = ({ slot = 'default', layout = 'responsive', className = '' }: G
             <span className="text-gray-400 text-sm">Advertisement</span>
           </div>
         )}
+      </div>
+    );
+  }
+
+  // Show fallback content if ad blocker is detected
+  if (adBlockerDetected) {
+    return (
+      <div 
+        className={`ad-fallback ${className}`}
+        style={{
+          minWidth: layout === 'responsive' ? '300px' : undefined,
+          minHeight: layout === 'responsive' ? '250px' : undefined,
+          width: layout === 'banner' ? '728px' : layout === 'rectangle' ? '300px' : '100%',
+          height: layout === 'banner' ? '90px' : layout === 'rectangle' ? '250px' : 'auto',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#f5f5f5',
+          border: '1px dashed #ddd',
+          borderRadius: '4px',
+          color: '#888',
+          fontSize: '14px',
+          fontStyle: 'italic'
+        }}
+      >
+        Advertisement space
       </div>
     );
   }

@@ -81,6 +81,24 @@ const transformDatabasePost = (dbPost: any): BlogPost => {
     }
     return Math.abs(hash);
   };
+
+  const profile = dbPost.profiles;
+  let authorName = 'Anonymous';
+
+  if (profile) {
+    // Prefer display_name, but not if it's 'System Administrator'
+    if (profile.display_name && profile.display_name !== 'System Administrator') {
+      authorName = profile.display_name;
+    } 
+    // Fallback to username, which is likely more reliable
+    else if (profile.username) {
+      authorName = profile.username;
+    }
+    // If all else fails and we have a profile, use a generic term
+    else {
+      authorName = 'Valued Contributor';
+    }
+  }
   
   return {
     id: generateNumericId(dbPost.id) || Math.floor(Math.random() * 1000000),
@@ -90,9 +108,9 @@ const transformDatabasePost = (dbPost: any): BlogPost => {
     content: dbPost.content || '', // HTML content from rich text editor
     image: dbPost.featured_image || 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
     author: {
-      name: dbPost.profiles?.display_name || dbPost.profiles?.username || 'Anonymous',
-      avatar: dbPost.profiles?.avatar_url || '/placeholder.svg',
-      bio: dbPost.profiles?.bio || 'Content creator and writer'
+      name: authorName,
+      avatar: profile?.avatar_url || '/placeholder.svg',
+      bio: profile?.bio || 'Content creator and writer'
     },
     date: new Date(dbPost.published_at || dbPost.created_at).toLocaleDateString('en-US', {
       month: 'short',
@@ -103,7 +121,7 @@ const transformDatabasePost = (dbPost: any): BlogPost => {
     category: dbPost.category || 'General',
     tags: ensureStringArray(dbPost.tags),
     author_id: dbPost.author_id,
-    author_username: dbPost.profiles?.username
+    author_username: profile?.username
   };
 };
 
@@ -600,88 +618,37 @@ export const createBlogPost = async (postData: {
   status: 'draft' | 'published';
 }): Promise<BlogPost | null> => {
   try {
-    console.log('📝 Creating new blog post:', postData.title);
+    console.log('📝 Creating blog post directly via database function:', postData.title);
     
-    // Content size check for 10,000+ word support
-    if (postData.content && postData.content.length > 500000) { // 500KB limit (supports ~80,000 words)
-      console.error('🚨🚨🚨 EMERGENCY: Content too large for create:', postData.content.length);
-      throw new Error(`Content too large: ${postData.content.length} characters. Maximum allowed: 500,000 characters (~80,000 words).`);
-    }
-    
-    // Get current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    
-    if (userError || !user) {
-      console.error('❌ User not authenticated:', userError);
-      throw new Error('You must be logged in to create a post');
-    }
+    // Use direct database function - NO EDGE FUNCTION NEEDED!
+    const { data: result, error: functionError } = await supabase.rpc(
+      'create_blog_post_direct',
+      {
+        p_title: postData.title,
+        p_content: postData.content,
+        p_status: postData.status,
+        p_category: postData.category || 'Other',
+        p_tags: ensureStringArray(postData.tags),
+        p_excerpt: postData.excerpt || null
+      }
+    );
 
-    const now = new Date().toISOString();
-    
-    // Generate slug from title using the utility function
-    const baseSlug = generateSlug(postData.title);
-    let slug = baseSlug;
-    
-    // Check if slug already exists and make it unique
-    let counter = 1;
-    while (true) {
-      const { data: existingPost } = await supabase
-        .from('blog_posts')
-        .select('id')
-        .eq('slug', slug)
-        .single();
-      
-      if (!existingPost) break; // Slug is unique
-      
-      slug = `${baseSlug}-${counter}`;
-      counter++;
-    }
-    
-    // Process tags more aggressively to prevent PostgreSQL array errors
-    const processedTags = ensureStringArray(postData.tags);
-    console.log('🔍 Pre-insert debug - tags processing:', {
-      originalTags: postData.tags,
-      processedTags: processedTags,
-      tagsType: typeof processedTags,
-      isArray: Array.isArray(processedTags),
-      stringified: JSON.stringify(processedTags)
-    });
-
-    const { data, error } = await supabase
-      .from('blog_posts')
-      .insert({
-        title: postData.title,
-        slug: slug,
-        content: postData.content.substring(0, 100000), // Hard truncate for safety
-        excerpt: postData.excerpt || postData.content.substring(0, 150).trim() + '...',
-        category: postData.category,
-        tags: processedTags, // Use the processed tags variable
-        featured_image: postData.featuredImage,
-        status: postData.status,
-        author_id: user.id,
-        published_at: postData.status === 'published' ? now : null,
-        created_at: now,
-        updated_at: now
-      })
-      .select()
-      .single();
-
-    console.log('🔍 Pre-insert debug - tags format:', {
-      originalTags: postData.tags,
-      processedTags: ensureStringArray(postData.tags),
-      tagsType: typeof ensureStringArray(postData.tags),
-      isArray: Array.isArray(ensureStringArray(postData.tags))
-    });
-
-    if (error) {
-      formatError(error, 'createBlogPost - Supabase insert');
-      throw error;
+    if (functionError) {
+      console.error('❌ Database function error:', functionError);
+      formatError(functionError, 'createBlogPost - Direct database function');
+      throw functionError;
     }
 
-    console.log('✅ Blog post created successfully:', data.id);
+    if (!result?.success) {
+      console.error('❌ Function returned error:', result?.error);
+      throw new Error(result?.error || 'Failed to create blog post');
+    }
+
+    console.log('✅ Blog post created successfully via direct database:', result.post.id);
     
-    // Fetch the created post with author profile
-    return await fetchBlogPost(data.id);
+    // Fetch the created post with author profile for consistent return format
+    return await fetchBlogPost(result.post.id);
+    
   } catch (error) {
     formatError(error, 'createBlogPost - Main catch');
     throw error;
@@ -713,20 +680,7 @@ export const updateBlogPost = async (
   try {
     console.log('📝 Updating blog post:', postId, postData);
     
-    // Content size check - allow for large content up to 200MB worth of data
-    if (postData.content && postData.content.length > 50000000) { // 50MB character limit for content
-      console.error('🚨🚨🚨 EMERGENCY: Content too large!', postData.content.length, 'characters');
-      console.error('🚨 Content limit: ' + postData.content.length);
-      throw new Error(`EMERGENCY: Content is too large (${Math.round(postData.content.length / 1024 / 1024)}MB). Maximum allowed: 50MB. Please use shorter content.`);
-    }
-    
-    // Check total data size with reasonable limit for large content
-    const totalDataSize = JSON.stringify(postData).length;
-    if (totalDataSize > 50000000) { // 50MB total data limit (approximately 200MB content capacity)
-      console.error('🚨🚨🚨 EMERGENCY: Total post data too large!', totalDataSize, 'characters');
-      console.error('🚨 Content limit: ' + totalDataSize);
-      throw new Error(`EMERGENCY: Post data is too large (${Math.round(totalDataSize / 1024 / 1024)}MB). Maximum allowed: 50MB.`);
-    }
+    // No content size restrictions - allow unlimited content size
     
     // Get current user
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -747,11 +701,7 @@ export const updateBlogPost = async (
       console.log('📊 Content size:', postData.content.length, 'characters');
       console.log('📊 Content preview (first 200 chars):', postData.content.substring(0, 200));
       
-      // Check for extremely large content (over 50MB)
-      if (postData.content.length > 50 * 1024 * 1024) {
-        console.warn('⚠️ Content is very large:', postData.content.length, 'characters (~', Math.round(postData.content.length / 1024 / 1024), 'MB)');
-        throw new Error(`Content is too large (${Math.round(postData.content.length / 1024 / 1024)}MB). Please reduce content size to under 50MB.`);
-      }
+      // No content size restrictions - allow unlimited content
       
       // Store the HTML content directly since we're using RichTextEditor
       updateData.content = postData.content;
@@ -818,7 +768,7 @@ export const updateBlogPost = async (
       throw new Error('Post not found');
     }
 
-    // Check permissions: user must be author, have editor role, or be nanopro
+    // Check permissions: user must be author, have editor role, or be admin
     const { data: userProfile } = await supabase
       .from('profiles')
       .select('username')
@@ -833,9 +783,9 @@ export const updateBlogPost = async (
 
     const isAuthor = currentPost.author_id === user.id;
     const isEditor = userRole?.role === 'editor';
-    const isNanopro = userProfile?.username === 'nanopro';
+    const isAdmin = userRole?.role === 'admin';
 
-    if (!isAuthor && !isEditor && !isNanopro) {
+    if (!isAuthor && !isEditor && !isAdmin) {
       throw new Error('You do not have permission to edit this post');
     }
 
@@ -894,11 +844,8 @@ export const updateBlogPost = async (
     // Test JSON serialization
     try {
       const jsonTest = JSON.stringify(updateDataToSend);
-      console.log('🚨 JSON serialization test passed, size:', jsonTest.length);
-      if (jsonTest.length > 50000000) { // 50MB JSON limit
-        console.error('🚨 JSON is too large!', jsonTest.length);
-        throw new Error(`Serialized data too large: ${Math.round(jsonTest.length / 1024 / 1024)}MB - maximum 50MB allowed`);
-      }
+      console.log('✅ JSON serialization test passed, size:', jsonTest.length);
+      // No size restrictions - allow unlimited content
     } catch (error) {
       console.error('🚨 JSON serialization failed:', error);
       throw new Error('Data cannot be serialized to JSON: ' + error.message);

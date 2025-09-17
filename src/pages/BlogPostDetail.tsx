@@ -12,12 +12,15 @@ import BackToTopButton from '@/components/BackToTopButton';
 import SocialSharing from '@/components/SocialSharing';
 import SEOMetaTags from '@/components/SEOMetaTags';
 import StructuredData from '@/components/StructuredData';
-// ...existing code...
+import Navbar from '@/components/Navbar';
+import Paywall from '@/components/Paywall';
+import PremiumContentManager from '@/components/PremiumContentManager';
 import { fetchBlogPost, fetchBlogPostBySlug, fetchBlogPostsByCategory } from '@/services/blogService';
 import { BlogPost as BlogPostType } from '@/types/blog';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useVisitorTracking } from '@/hooks/useVisitorTracking';
+import { supabase } from '@/integrations/supabase/client';
 
 const BlogPostDetail = () => {
   const { id, slug } = useParams();
@@ -29,6 +32,14 @@ const BlogPostDetail = () => {
   const [contentLoading, setContentLoading] = useState(true);
   const [relatedLoading, setRelatedLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [premiumContent, setPremiumContent] = useState<{
+    is_premium: boolean;
+    has_access: boolean;
+    preview_content: string;
+    price_cents: number;
+    currency: string;
+    full_content?: string;
+  } | null>(null);
 
   // Initialize visitor tracking for this blog post
   const { sessionId } = useVisitorTracking({
@@ -76,6 +87,9 @@ const BlogPostDetail = () => {
         setNotFound(true);
         return;
       }
+
+      // Check premium content access
+      await checkPremiumAccess(postData.id);
 
       // Set basic post data immediately
       setPost(postData);
@@ -138,19 +152,37 @@ const BlogPostDetail = () => {
     }
   };
 
+  // Check premium content access
+  const checkPremiumAccess = async (postId: string) => {
+    try {
+      const { data, error } = await supabase.rpc('get_blog_post_with_premium_check', {
+        p_blog_post_id: postId
+      });
+
+      if (error) {
+        console.error('Error checking premium access:', error);
+        return;
+      }
+
+      if (data) {
+        setPremiumContent({
+          is_premium: data.is_premium || false,
+          has_access: data.has_access || false,
+          preview_content: data.preview_content || '',
+          price_cents: data.price_cents || 500,
+          currency: data.currency || 'EUR',
+          full_content: data.has_access ? data.content : undefined
+        });
+      }
+    } catch (error) {
+      console.error('Error checking premium access:', error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <header className="bg-white shadow-sm border-b">
-          <div className="max-w-4xl mx-auto px-4 py-4">
-            <Link to="/">
-              <Button variant="ghost" className="mb-4">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Posts
-              </Button>
-            </Link>
-          </div>
-        </header>
+        <Navbar />
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
             <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
@@ -209,21 +241,13 @@ const BlogPostDetail = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Navbar />
       {/* SEO Meta Tags */}
       {post && <SEOMetaTags post={post} />}
       {post && <StructuredData post={post} type="blogPost" />}
       
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <Link to="/">
-            <Button variant="ghost" className="mb-4">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Posts
-            </Button>
-          </Link>
-        </div>
-      </header>
+      
 
       {/* Article */}
       <article className="max-w-4xl mx-auto px-4 py-8">
@@ -300,7 +324,7 @@ const BlogPostDetail = () => {
           </div>
         </header>
 
-        {/* Article Content */}
+        {/* Article Content with Premium Paywall */}
         <div className="prose prose-lg max-w-none">          
           {contentLoading ? (
             <div className="space-y-4 animate-fade-in">
@@ -312,11 +336,32 @@ const BlogPostDetail = () => {
               <div className="animate-pulse bg-gray-200 h-4 w-full rounded"></div>
               <div className="animate-pulse bg-gray-200 h-4 w-4/5 rounded"></div>
             </div>
+          ) : premiumContent?.is_premium && !premiumContent.has_access ? (
+            /* Premium Content Paywall */
+            <div className="space-y-8">
+              {/* Preview Content */}
+              {premiumContent.preview_content && (
+                <div className="text-lg leading-[1.8] tracking-normal mb-8 text-gray-800">
+                  <div dangerouslySetInnerHTML={{ __html: premiumContent.preview_content }} />
+                </div>
+              )}
+              
+              {/* Paywall Component */}
+              <Paywall
+                postId={post.id}
+                postTitle={post.title}
+                price={premiumContent.price_cents / 100}
+                currency={premiumContent.currency}
+                onPaymentSuccess={() => checkPremiumAccess(post.id)}
+              />
+            </div>
           ) : (
+            /* Regular Content or Premium Content with Access */
             (
-              post.content && (() => {
+              (premiumContent?.full_content || post.content) && (() => {
+                const contentToRender = premiumContent?.full_content || post.content;
                 try {
-                  const blocks: Block[] = JSON.parse(post.content);
+                  const blocks: Block[] = JSON.parse(contentToRender);
                   return (
                     <div className="overflow-hidden space-y-8">
                       {blocks.map((block, index) => (
@@ -377,11 +422,11 @@ const BlogPostDetail = () => {
                   );
                 } catch {
                   // If content exists but isn't JSON, render as HTML
-                  if (post.content && post.content.trim()) {
+                  if (contentToRender && contentToRender.trim()) {
                     return (
                       <div 
                         className="blog-content space-y-6 text-gray-700 leading-relaxed break-words overflow-hidden"
-                        dangerouslySetInnerHTML={{ __html: post.content }}
+                        dangerouslySetInnerHTML={{ __html: contentToRender }}
                       />
                     );
                   }
@@ -402,6 +447,18 @@ const BlogPostDetail = () => {
             )
           )}
         </div>
+
+        {/* Premium Content Manager for Admins/Editors */}
+        {canEdit && post && (
+          <div className="mt-12 pt-8 border-t border-gray-200">
+            <PremiumContentManager
+              blogPostId={post.id}
+              blogPostTitle={post.title}
+              blogPostContent={post.content}
+              onUpdate={() => checkPremiumAccess(post.id)}
+            />
+          </div>
+        )}
 
         {/* Social Sharing Section */}
         <div className="mt-12">

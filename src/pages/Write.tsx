@@ -1,406 +1,494 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Plus, FileText, Clock, Eye } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import Header from '@/components/navigation/Header';
-import PostEditor from '@/components/PostEditor';
-import { createBlogPost, updateBlogPost } from '@/services/blogService';
-import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/useAuth';
-
-
-interface PostData {
-  title: string;
-  content: string;
-  excerpt: string;
-  category: string;
-  tags: string[];
-  featuredImage?: string;
-  status: 'draft' | 'published';
-}
+// Write Page Component - Direct Database Blog System
+import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { 
+  PenTool as PenIcon, 
+  Save, 
+  Send, 
+  X, 
+  FileText, 
+  Loader2, 
+  Shield, 
+  User 
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { createBlogPost } from '@/services/blogService'
+import { useToast } from '@/hooks/use-toast'
+import { useAuth } from '@/hooks/useAuth'
+import { supabase } from '@/integrations/supabase/client'
 
 interface Draft {
-  id: string;
-  title: string;
-  excerpt: string;
-  category: string;
-  tags: string[];
-  createdAt: string;
-  updatedAt: string;
+  id: string
+  title: string
+  content: string
+  category: string
+  tags: string
+  excerpt: string
+  slug: string
+  authorName: string
+  createdAt: string
+  updatedAt: string
 }
 
-const WritePage = () => {
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const { user, userRole, loading: authLoading } = useAuth();
+const Write: React.FC = () => {
+  const [content, setContent] = useState('')
+  const [title, setTitle] = useState('')
+  const [category, setCategory] = useState('')
+  const [tags, setTags] = useState('')
+  const [excerpt, setExcerpt] = useState('')
+  const [slug, setSlug] = useState('')
+  const [authorName, setAuthorName] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [drafts, setDrafts] = useState<Draft[]>([])
+  const [userRoleData, setUserRoleData] = useState<{role: string} | null>(null)
+  const [roleLoading, setRoleLoading] = useState(true)
   
-  const [isEditorOpen, setIsEditorOpen] = useState(false);
-  const [editingPost, setEditingPost] = useState<any>(null);
-  const [drafts, setDrafts] = useState<Draft[]>([]);
-  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate()
+  const { toast } = useToast()
+  const { user } = useAuth()
+
+  // Check if user has permission to post
+  const hasPostingPermission = userRoleData?.role === 'admin' || userRoleData?.role === 'editor'
+
+  // Function to check user role using direct database call
+  const checkUserRole = async () => {
+    if (!user) {
+      setRoleLoading(false)
+      return
+    }
+
+    try {
+      const { data, error } = await supabase.rpc('get_user_role')
+      
+      if (error) {
+        console.error('Error checking user role:', error)
+        setUserRoleData(null)
+      } else {
+        setUserRoleData(data)
+      }
+    } catch (error) {
+      console.error('Error checking user role:', error)
+      setUserRoleData(null)
+    } finally {
+      setRoleLoading(false)
+    }
+  }
+
+  // Check user role on component mount and user change
+  useEffect(() => {
+    checkUserRole()
+  }, [user])
 
   useEffect(() => {
-    // Don't redirect while still loading authentication state
-    if (authLoading) {
-      return;
+    // Only proceed if role checking is complete
+    if (roleLoading) {
+      return
     }
 
-    // Redirect to login if not authenticated
+    // If user is not logged in, redirect to auth
     if (!user) {
-      navigate('/auth');
-      return;
-    }
-
-    // If user is authenticated but role is still loading, wait
-    if (user && userRole === null) {
-      return;
-    }
-
-    // Redirect if user is not admin or editor
-    if (user && userRole !== 'admin' && userRole !== 'editor') {
       toast({
-        title: "Access Denied",
-        description: "You need admin or editor privileges to access the writing page.",
+        title: "Authentication Required",
+        description: "Please log in to access the writing page.",
         variant: "destructive"
-      });
-      navigate('/');
-      return;
+      })
+      navigate('/auth')
+      return
+    }
+
+    // Check if user has posting permissions
+    if (!hasPostingPermission) {
+      toast({
+        title: "Access Denied", 
+        description: `You need admin or editor privileges to access the writing page. Your current role: ${userRoleData?.role || 'none'}. Please contact an administrator to request access.`,
+        variant: "destructive"
+      })
+      navigate('/')
+      return
     }
     
-    // Load drafts from localStorage for now
-    // In production, you'd fetch from your backend
-    if (user && (userRole === 'admin' || userRole === 'editor')) {
-      loadDrafts();
+    // Load drafts if user has permission
+    if (hasPostingPermission) {
+      loadDrafts()
     }
-  }, [user, userRole, authLoading, navigate, toast]);
+  }, [user, hasPostingPermission, roleLoading, userRoleData, navigate, toast])
 
   const loadDrafts = () => {
     try {
-      const savedDrafts = localStorage.getItem('blog_drafts');
+      const savedDrafts = localStorage.getItem('blogDrafts')
       if (savedDrafts) {
-        setDrafts(JSON.parse(savedDrafts));
+        setDrafts(JSON.parse(savedDrafts))
       }
     } catch (error) {
-      console.error('Error loading drafts:', error);
+      console.error('Error loading drafts:', error)
     }
-  };
-
-  const saveDraft = (postData: any) => {
-    try {
-      const draft = {
-        id: editingPost?.id || Date.now().toString(),
-        title: postData.title,
-        excerpt: postData.excerpt,
-        category: postData.category,
-        tags: postData.tags,
-        content: postData.content, // This will be JSON string from blocks
-        featuredImage: postData.featured_image,
-        readTime: postData.read_time,
-        createdAt: editingPost?.createdAt || new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-
-      const existingDrafts = JSON.parse(localStorage.getItem('blog_drafts') || '[]');
-      const draftIndex = existingDrafts.findIndex((d: any) => d.id === draft.id);
-      
-      if (draftIndex >= 0) {
-        existingDrafts[draftIndex] = draft;
-      } else {
-        existingDrafts.unshift(draft);
-      }
-      
-      localStorage.setItem('blog_drafts', JSON.stringify(existingDrafts));
-      loadDrafts();
-      
-      toast({
-        title: "Success",
-        description: "Draft saved successfully"
-      });
-    } catch (error) {
-      console.error('Error saving draft:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save draft",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const publishPost = async (postData: any) => {
-    try {
-      setLoading(true);
-      
-      if (editingPost?.isExisting) {
-        // Update existing post
-        await updateBlogPost(editingPost.id, postData);
-      } else {
-        // Create new post
-        await createBlogPost(postData);
-      }
-
-      // Remove from drafts if it was a draft
-      if (editingPost?.id) {
-        const existingDrafts = JSON.parse(localStorage.getItem('blog_drafts') || '[]');
-        const filteredDrafts = existingDrafts.filter((d: any) => d.id !== editingPost.id);
-        localStorage.setItem('blog_drafts', JSON.stringify(filteredDrafts));
-        loadDrafts();
-      }
-
-      toast({
-        title: "Success",
-        description: "Post published successfully!"
-      });
-      
-      // Navigate to the home page to see the published post
-      navigate('/');
-    } catch (error: any) {
-      console.error('Error publishing post:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to publish post",
-        variant: "destructive"
-      });
-      throw error; // Re-throw so PostEditor can handle it
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const openEditor = (draft?: any) => {
-    setEditingPost(draft || null);
-    setIsEditorOpen(true);
-  };
-
-  const deleteDraft = (draftId: string) => {
-    try {
-      const existingDrafts = JSON.parse(localStorage.getItem('blog_drafts') || '[]');
-      const filteredDrafts = existingDrafts.filter((d: any) => d.id !== draftId);
-      localStorage.setItem('blog_drafts', JSON.stringify(filteredDrafts));
-      loadDrafts();
-      
-      toast({
-        title: "Success",
-        description: "Draft deleted"
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete draft",
-        variant: "destructive"
-      });
-    }
-  };
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
   }
 
-  if (!user) {
-    return null; // Will redirect to auth
+  const saveDraft = () => {
+    if (!title.trim() && !content.trim()) return
+
+    const draft: Draft = {
+      id: Date.now().toString(),
+      title: title || 'Untitled Draft',
+      content,
+      category,
+      tags,
+      excerpt,
+      slug,
+      authorName,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+
+    const updatedDrafts = [draft, ...drafts]
+    setDrafts(updatedDrafts)
+    localStorage.setItem('blogDrafts', JSON.stringify(updatedDrafts))
+
+    toast({
+      title: "Draft Saved",
+      description: "Your post has been saved as a draft."
+    })
+  }
+
+  const loadDraft = (draft: Draft) => {
+    setTitle(draft.title)
+    setContent(draft.content)
+    setCategory(draft.category)
+    setTags(draft.tags)
+    setExcerpt(draft.excerpt)
+    setSlug(draft.slug)
+    setAuthorName(draft.authorName)
+    
+    toast({
+      title: "Draft Loaded",
+      description: "Draft has been loaded into the editor."
+    })
+  }
+
+  const deleteDraft = (draftId: string) => {
+    const updatedDrafts = drafts.filter(draft => draft.id !== draftId)
+    setDrafts(updatedDrafts)
+    localStorage.setItem('blogDrafts', JSON.stringify(updatedDrafts))
+    
+    toast({
+      title: "Draft Deleted",
+      description: "Draft has been removed."
+    })
+  }
+
+  const clearForm = () => {
+    setTitle('')
+    setContent('')
+    setCategory('')
+    setTags('')
+    setExcerpt('')
+    setSlug('')
+    setAuthorName('')
+  }
+
+  const generateSlug = (title: string) => {
+    return title
+      .toLowerCase()
+      .replace(/[^a-z0-9 -]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .trim()
+  }
+
+  const handleTitleChange = (value: string) => {
+    setTitle(value)
+    if (!slug) {
+      setSlug(generateSlug(value))
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!title.trim() || !content.trim()) {
+      toast({
+        title: "Missing Fields",
+        description: "Please fill in at least the title and content.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      const postData = {
+        title,
+        content,
+        category: category || 'General',
+        tags: tags.split(',').map(tag => tag.trim()).filter(Boolean),
+        excerpt: excerpt || content.substring(0, 150) + '...',
+        slug: slug || generateSlug(title),
+        author_name: authorName || user?.email?.split('@')[0] || 'Anonymous',
+        status: 'published' as const
+      }
+
+      const result = await createBlogPost(postData)
+      
+      if (result) {
+        toast({
+          title: "Success!",
+          description: "Your blog post has been created successfully."
+        })
+        clearForm()
+      } else {
+        throw new Error('Failed to create post')
+      }
+    } catch (error: any) {
+      console.error('Error creating post:', error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create blog post. Please try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Show loading state while checking role
+  if (roleLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+              <p>Checking permissions...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Don't render the form if user doesn't have permission
+  if (!hasPostingPermission) {
+    return null // useEffect will handle navigation
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <Header variant="simple" />
-      
-      {/* Write Title Section */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-6xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Write</h1>
-              <p className="text-gray-600 mt-1">Share your thoughts with the world</p>
-            </div>
-            <Button 
-              onClick={() => openEditor()}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              New Post
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Quick Actions */}
-          <div className="lg:col-span-1">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button 
-                  onClick={() => openEditor()}
-                  className="w-full justify-start"
-                  variant="outline"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create New Post
-                </Button>
-                <Button 
-                  onClick={() => navigate('/')}
-                  className="w-full justify-start"
-                  variant="outline"
-                >
-                  <Eye className="w-4 h-4 mr-2" />
-                  View Published Posts
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Writing Tips */}
-            <Card className="mt-6">
-              <CardHeader>
-                <CardTitle className="text-lg">Writing Tips</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm text-gray-600">
-                <div className="flex items-start gap-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                  <p>Start with a compelling headline that grabs attention</p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                  <p>Use short paragraphs and bullet points for readability</p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                  <p>Add relevant tags to help readers discover your content</p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                  <p>Include a featured image to make your post more engaging</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Drafts */}
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="w-5 h-5" />
-                  Your Drafts ({drafts.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {drafts.length === 0 ? (
-                  <div className="text-center py-12">
-                    <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No drafts yet</h3>
-                    <p className="text-gray-600 mb-4">
-                      Start writing your first post and save it as a draft
-                    </p>
-                    <Button onClick={() => openEditor()}>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Create Your First Post
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {drafts.map((draft) => (
-                      <div
-                        key={draft.id}
-                        className="border rounded-lg p-4 hover:shadow-md transition-shadow"
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-gray-900 mb-2">
-                              {draft.title || 'Untitled Draft'}
-                            </h3>
-                            <p className="text-gray-600 text-sm mb-3 line-clamp-2">
-                              {draft.excerpt || 'No excerpt available...'}
-                            </p>
-                            <div className="flex items-center gap-4 text-xs text-gray-500">
-                              <div className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                Updated {new Date(draft.updatedAt).toLocaleDateString()}
-                              </div>
-                              <Badge variant="outline" className="text-xs">
-                                {draft.category}
-                              </Badge>
-                              {draft.tags.length > 0 && (
-                                <div className="flex gap-1">
-                                  {draft.tags.slice(0, 2).map(tag => (
-                                    <Badge key={tag} variant="secondary" className="text-xs">
-                                      #{tag}
-                                    </Badge>
-                                  ))}
-                                  {draft.tags.length > 2 && (
-                                    <span className="text-xs">+{draft.tags.length - 2}</span>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex gap-2 ml-4">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => openEditor(draft)}
-                            >
-                              Edit
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => deleteDraft(draft.id)}
-                            >
-                              Delete
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <PenIcon className="h-8 w-8 text-blue-600" />
+                <h1 className="text-3xl font-bold text-gray-800">Write New Post</h1>
+              </div>
+              <div className="flex items-center gap-2">
+                {userRoleData?.role === 'admin' && (
+                  <div className="flex items-center gap-1 text-purple-600 bg-purple-100 px-3 py-1 rounded-full text-sm">
+                    <Shield className="h-4 w-4" />
+                    Admin
                   </div>
                 )}
-              </CardContent>
-            </Card>
+                {userRoleData?.role === 'editor' && (
+                  <div className="flex items-center gap-1 text-green-600 bg-green-100 px-3 py-1 rounded-full text-sm">
+                    <User className="h-4 w-4" />
+                    Editor
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Title */}
+              <div>
+                <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+                  Title *
+                </label>
+                <Input
+                  id="title"
+                  value={title}
+                  onChange={(e) => handleTitleChange(e.target.value)}
+                  placeholder="Enter your blog post title..."
+                  required
+                />
+              </div>
+
+              {/* Slug */}
+              <div>
+                <label htmlFor="slug" className="block text-sm font-medium text-gray-700 mb-2">
+                  URL Slug
+                </label>
+                <Input
+                  id="slug"
+                  value={slug}
+                  onChange={(e) => setSlug(e.target.value)}
+                  placeholder="url-friendly-slug"
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  Auto-generated from title if left empty
+                </p>
+              </div>
+
+              {/* Category and Author */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
+                    Category
+                  </label>
+                  <Input
+                    id="category"
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    placeholder="e.g., Technology, Business"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="authorName" className="block text-sm font-medium text-gray-700 mb-2">
+                    Author Name
+                  </label>
+                  <Input
+                    id="authorName"
+                    value={authorName}
+                    onChange={(e) => setAuthorName(e.target.value)}
+                    placeholder="Author name (optional)"
+                  />
+                </div>
+              </div>
+
+              {/* Tags */}
+              <div>
+                <label htmlFor="tags" className="block text-sm font-medium text-gray-700 mb-2">
+                  Tags
+                </label>
+                <Input
+                  id="tags"
+                  value={tags}
+                  onChange={(e) => setTags(e.target.value)}
+                  placeholder="tag1, tag2, tag3"
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  Separate tags with commas
+                </p>
+              </div>
+
+              {/* Excerpt */}
+              <div>
+                <label htmlFor="excerpt" className="block text-sm font-medium text-gray-700 mb-2">
+                  Excerpt
+                </label>
+                <Textarea
+                  id="excerpt"
+                  value={excerpt}
+                  onChange={(e) => setExcerpt(e.target.value)}
+                  placeholder="Brief description of your post..."
+                  rows={3}
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  Auto-generated from content if left empty
+                </p>
+              </div>
+
+              {/* Content */}
+              <div>
+                <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-2">
+                  Content *
+                </label>
+                <Textarea
+                  id="content"
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder="Write your blog post content here..."
+                  rows={15}
+                  required
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-4 pt-6 border-t">
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Publishing...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="mr-2 h-4 w-4" />
+                      Publish Post
+                    </>
+                  )}
+                </Button>
+                
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={saveDraft}
+                  disabled={isSubmitting}
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  Save Draft
+                </Button>
+                
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={clearForm}
+                  disabled={isSubmitting}
+                >
+                  <X className="mr-2 h-4 w-4" />
+                  Clear Form
+                </Button>
+              </div>
+            </form>
           </div>
+
+          {/* Drafts Section */}
+          {drafts.length > 0 && (
+            <div className="bg-white rounded-lg shadow-lg p-6">
+              <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Saved Drafts ({drafts.length})
+              </h2>
+              <div className="space-y-3">
+                {drafts.map((draft) => (
+                  <div key={draft.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                    <div className="flex-1">
+                      <h3 className="font-medium text-gray-900">{draft.title}</h3>
+                      <p className="text-sm text-gray-500">
+                        Saved {new Date(draft.updatedAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => loadDraft(draft)}
+                      >
+                        Load
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => deleteDraft(draft.id)}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Post Editor Modal */}
-      <PostEditor
-        isOpen={isEditorOpen}
-        onClose={() => {
-          setIsEditorOpen(false);
-          setEditingPost(null);
-        }}
-        onSave={async (postData) => {
-          if (postData.status === 'published') {
-            await publishPost(postData);
-          } else {
-            saveDraft(postData);
-          }
-        }}
-        initialPost={editingPost ? {
-          title: editingPost.title || '',
-          content: editingPost.content || '',
-          excerpt: editingPost.excerpt || '',
-          category: editingPost.category || 'Technology',
-          tags: editingPost.tags || [],
-          featured_image: editingPost.featuredImage || '',
-          read_time: editingPost.readTime || 5,
-          id: editingPost.id
-        } : undefined}
-        mode={editingPost?.isExisting ? 'edit' : 'create'}
-      />
     </div>
-  );
-};
+  )
+}
 
-export default WritePage;
+export default Write;

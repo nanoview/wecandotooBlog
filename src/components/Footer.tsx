@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { getBuyMeCoffeeUrl, PAYMENT_CONFIG } from '@/config/payment';
 
 const Footer = () => {
   const { userRole } = useAuth();
@@ -37,6 +38,17 @@ const Footer = () => {
               </Link>
               <Link to="/contact" className="block text-gray-300 hover:text-blue-400 transition-colors text-sm">
                 Contact
+              </Link>
+              <a 
+                href={getBuyMeCoffeeUrl({ description: PAYMENT_CONFIG.messages.coffee })}
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="block text-yellow-400 hover:text-yellow-300 transition-colors text-sm font-medium"
+              >
+                ☕ Buy me a coffee
+              </a>
+              <Link to="/premium" className="block text-gold-400 hover:text-gold-300 transition-colors text-sm font-medium">
+                🔒 Premium Content
               </Link>
               <Link to="/privacy-policy" className="block text-gray-300 hover:text-blue-400 transition-colors text-sm">
                 Privacy Policy

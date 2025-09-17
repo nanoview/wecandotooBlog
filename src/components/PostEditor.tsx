@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Save, Eye, EyeOff, Hash, Send, Image as ImageIcon, Search, Target, Globe, Upload } from 'lucide-react';
+import { X, Save, Eye, EyeOff, Hash, Send, Image as ImageIcon, Search, Target, Globe, Upload, AlertCircle, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,6 +13,7 @@ import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useAutoImageUpload } from '@/hooks/useAutoImageUpload';
+import { supabase } from '@/integrations/supabase/client';
 import RichTextEditor from '@/components/RichTextEditor';
 import ImageUploader from '@/components/ImageUploader';
 import { handleImagePaste, uploadImage, validateImageFile, generateImageHTML, type UploadedImage } from '@/services/imageUploadService';
@@ -35,6 +36,34 @@ const PostEditor: React.FC<PostEditorProps> = ({
 }) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  
+  // Utility function to create copyable error messages
+  const showCopyableError = (title: string, message: string, details?: any) => {
+    const errorText = `${title}:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Timestamp: ${new Date().toISOString()}
+Component: PostEditor
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Message: ${message}
+${details ? `Details: ${JSON.stringify(details, null, 2)}` : ''}`;
+
+    navigator.clipboard.writeText(errorText).catch(() => console.warn('Could not copy error'));
+
+    toast({
+      title: `❌ ${title}`,
+      description: (
+        <div className="space-y-2">
+          <p>{message}</p>
+          <div className="bg-gray-100 p-2 rounded text-xs font-mono border">
+            <div className="text-red-600 font-semibold">{message}</div>
+          </div>
+          <p className="text-xs text-gray-600">📋 Error details copied to clipboard</p>
+        </div>
+      ),
+      variant: "destructive",
+      duration: 6000
+    });
+  };
   
   // Basic fields
   const [title, setTitle] = useState(initialPost?.title || '');
@@ -65,14 +94,47 @@ const PostEditor: React.FC<PostEditorProps> = ({
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [showImageUploader, setShowImageUploader] = useState(false);
 
-  // NEW SEO FIELDS
+  // SEO fields - now optional and for display only
   const [seoTitle, setSeoTitle] = useState(initialPost?.seo_title || '');
   const [metaDescription, setMetaDescription] = useState(initialPost?.meta_description || '');
   const [focusKeyword, setFocusKeyword] = useState(initialPost?.focus_keyword || '');
   const [slug, setSlug] = useState(initialPost?.slug || '');
   const [canonicalUrl, setCanonicalUrl] = useState(initialPost?.canonical_url || '');
   
+  // Role-based access check
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [hasPostingPermission, setHasPostingPermission] = useState(false);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Check user role and permissions on component mount
+  useEffect(() => {
+    const checkUserRole = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .in('role', ['admin', 'editor'])
+          .single();
+          
+        if (data && !error) {
+          setUserRole(data.role);
+          setHasPostingPermission(true);
+        } else {
+          setUserRole(null);
+          setHasPostingPermission(false);
+        }
+      } catch (error) {
+        console.warn('Could not check user role:', error);
+        setHasPostingPermission(false);
+      }
+    };
+    
+    checkUserRole();
+  }, [user]);
 
   // Paste event handler for automatic image upload
   useEffect(() => {
@@ -101,10 +163,31 @@ const PostEditor: React.FC<PostEditorProps> = ({
         }
       } catch (error) {
         console.error('Paste upload error:', error);
+        
+        const errorText = `Image Paste Upload Error:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Timestamp: ${new Date().toISOString()}
+Action: Pasting image from clipboard
+Component: PostEditor
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Error: ${error.message || 'Unknown paste upload error'}
+Stack: ${error.stack || 'No stack trace'}`;
+
+        navigator.clipboard.writeText(errorText).catch(() => console.warn('Could not copy error'));
+
         toast({
-          title: "Upload Failed",
-          description: "Could not upload pasted image",
-          variant: "destructive"
+          title: "❌ Image Upload Failed",
+          description: (
+            <div className="space-y-2">
+              <p>Could not upload pasted image</p>
+              <div className="bg-gray-100 p-2 rounded text-xs font-mono border">
+                <div className="text-red-600 font-semibold">{error.message || 'Unknown paste upload error'}</div>
+              </div>
+              <p className="text-xs text-gray-600">📋 Error details copied to clipboard</p>
+            </div>
+          ),
+          variant: "destructive",
+          duration: 8000
         });
       }
     };
@@ -221,10 +304,39 @@ const PostEditor: React.FC<PostEditorProps> = ({
       return uploadedImage.url;
     } catch (error) {
       console.error('Image upload error:', error);
+      
+      const errorText = `Manual Image Upload Error:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Timestamp: ${new Date().toISOString()}
+Action: Manual image upload
+Component: PostEditor
+File: ${file.name || 'Unknown file'}
+Size: ${file.size || 'Unknown size'} bytes
+Type: ${file.type || 'Unknown type'}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Error: ${error instanceof Error ? error.message : 'Failed to upload image'}
+Stack: ${error.stack || 'No stack trace'}`;
+
+      navigator.clipboard.writeText(errorText).catch(() => console.warn('Could not copy error'));
+
       toast({
-        title: "Upload Failed",
-        description: error instanceof Error ? error.message : "Failed to upload image",
-        variant: "destructive"
+        title: "❌ Image Upload Failed",
+        description: (
+          <div className="space-y-2">
+            <p>Failed to upload image: {file.name}</p>
+            <div className="bg-gray-100 p-2 rounded text-xs font-mono border">
+              <div className="text-red-600 font-semibold">
+                {error instanceof Error ? error.message : "Failed to upload image"}
+              </div>
+              <div className="text-gray-600 mt-1">
+                File: {file.name} ({(file.size / 1024).toFixed(1)}KB)
+              </div>
+            </div>
+            <p className="text-xs text-gray-600">📋 Error details copied to clipboard</p>
+          </div>
+        ),
+        variant: "destructive",
+        duration: 8000
       });
       throw error;
     }
@@ -260,51 +372,65 @@ const PostEditor: React.FC<PostEditorProps> = ({
   };
 
   const handleSave = async (status: 'draft' | 'published' = 'draft') => {
+    // Check role-based access first
+    if (!hasPostingPermission) {
+      showCopyableError(
+        "Access Denied",
+        "Only administrators and editors can create or edit blog posts.",
+        { userRole: userRole, hasPermission: hasPostingPermission, userId: user?.id }
+      );
+      return;
+    }
+
     if (!title.trim()) {
-      toast({
-        title: "Title Required",
-        description: "Please enter a title for your post.",
-        variant: "destructive"
-      });
+      showCopyableError(
+        "Title Required",
+        "Please enter a title for your post.",
+        { currentTitle: title, titleLength: title.length }
+      );
       return;
     }
 
     if (!content.trim()) {
-      toast({
-        title: "Content Required",
-        description: "Please add some content to your post.",
-        variant: "destructive"
-      });
+      showCopyableError(
+        "Content Required", 
+        "Please add some content to your post.",
+        { currentContent: content.substring(0, 100) + "...", contentLength: content.length }
+      );
       return;
     }
 
-    // SEO Validation - only required for new posts, optional for edits
-    if (status === 'published' && mode === 'create') {
-      if (!seoTitle || !metaDescription || !focusKeyword) {
-        toast({
-          title: "SEO Fields Required",
-          description: "Please fill in SEO title, meta description, and focus keyword before publishing a new post.",
-          variant: "destructive"
-        });
-        return;
-      }
-    }
+    // SEO Validation removed - no longer required for posting
+    // Users can generate SEO data later via dashboard
 
     calculateReadTime();
 
     // Check for blob URLs in content
     const contentValidation = validateContentForProduction(content);
     if (!contentValidation.isValid && status === 'published') {
-      toast({
-        title: "Images Not Uploaded",
-        description: "Some images are still being processed. Please wait for upload to complete before publishing.",
-        variant: "destructive"
-      });
+      showCopyableError(
+        "Images Not Uploaded",
+        "Some images are still being processed. Please wait for upload to complete before publishing.",
+        { 
+          contentValidation: contentValidation,
+          blobUrls: contentValidation.issues
+        }
+      );
       console.warn('📷 Blob URLs found in content:', contentValidation.issues);
       return;
     }
 
     try {
+      // Role-based access check
+      if (!hasPostingPermission) {
+        showCopyableError(
+          "Access Denied",
+          "Only administrators and editors can create or edit blog posts.",
+          { userRole: userRole, hasPermission: hasPostingPermission, userId: user?.id }
+        );
+        return;
+      }
+
       const postData = {
         title: title.trim(),
         content,
@@ -328,28 +454,13 @@ const PostEditor: React.FC<PostEditorProps> = ({
       console.log('📊 PostEditor - Content size:', content.length, 'characters');
       console.log('📊 PostEditor - Content preview:', content.substring(0, 200));
       console.log('📊 PostEditor - Tags being saved:', tags, 'Type:', typeof tags, 'Array?', Array.isArray(tags));
-      
-      // Check for content explosion
-      if (content.length > 50000000) { // 50MB
-        console.error('🚨 CRITICAL: Content explosion detected!', content.length, 'characters');
-        console.error('🚨 Content preview:', content.substring(0, 500));
-        toast({
-          title: "Content Too Large",
-          description: `Content has grown to ${Math.round(content.length / 1024 / 1024)}MB. Please reduce content size to under 50MB.`,
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      if (content.length > 10000000) { // 10MB warning
-        console.warn('⚠️ PostEditor - Content is very large:', content.length, 'characters');
-      }
+      console.log('📊 PostEditor - User role:', userRole, 'Has permission:', hasPostingPermission);
 
       await onSave(postData);
       
       toast({
         title: "Success!",
-        description: `Post ${status === 'published' ? 'published' : 'saved'} successfully.`,
+        description: `Post ${status === 'published' ? 'published' : 'saved'} successfully. ${status === 'published' ? 'You can generate SEO data from the dashboard.' : ''}`,
       });
 
       if (status === 'published') {
@@ -361,10 +472,66 @@ const PostEditor: React.FC<PostEditorProps> = ({
       console.error('🔍 PostEditor save error message:', error.message || 'No message');
       console.error('🔍 PostEditor save error code:', error.code || 'No code');
       console.error('🔍 PostEditor save error stack:', error.stack || 'No stack');
+      
+      // Create copyable error details
+      const errorDetails = {
+        message: error.message || 'Unknown error',
+        code: error.code || 'No code',
+        details: error.details || 'No details',
+        hint: error.hint || 'No hint',
+        stack: error.stack || 'No stack trace',
+        timestamp: new Date().toISOString(),
+        action: 'saving blog post',
+        component: 'PostEditor'
+      };
+      
+      const copyableErrorText = `Error Details (Copy this for support):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Timestamp: ${errorDetails.timestamp}
+Component: ${errorDetails.component}
+Action: ${errorDetails.action}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Error Message: ${errorDetails.message}
+Error Code: ${errorDetails.code}
+Error Details: ${errorDetails.details}
+Error Hint: ${errorDetails.hint}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Stack Trace:
+${errorDetails.stack}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+
+      // Copy to clipboard automatically
+      navigator.clipboard.writeText(copyableErrorText).catch(() => {
+        console.warn('Could not copy error details to clipboard');
+      });
+
       toast({
-        title: "Error",
-        description: `Failed to save the post: ${error.message || 'Unknown error'}`,
-        variant: "destructive"
+        title: "❌ Post Save Failed",
+        description: (
+          <div className="space-y-2">
+            <p className="font-medium">Failed to save the post</p>
+            <div className="bg-gray-100 p-2 rounded text-xs font-mono border">
+              <div className="text-red-600 font-semibold">Error: {errorDetails.message}</div>
+              {errorDetails.code !== 'No code' && (
+                <div className="text-gray-600">Code: {errorDetails.code}</div>
+              )}
+              {errorDetails.hint !== 'No hint' && (
+                <div className="text-blue-600">Hint: {errorDetails.hint}</div>
+              )}
+            </div>
+            <p className="text-xs text-gray-600">
+              📋 Error details copied to clipboard automatically
+            </p>
+            <button 
+              onClick={() => navigator.clipboard.writeText(copyableErrorText)}
+              className="text-xs bg-blue-100 hover:bg-blue-200 px-2 py-1 rounded border text-blue-700 font-medium"
+            >
+              📋 Copy Full Error Details Again
+            </button>
+          </div>
+        ),
+        variant: "destructive",
+        duration: 10000 // Show longer for copying
       });
     } finally {
       setIsPublishing(false);
@@ -418,6 +585,31 @@ const PostEditor: React.FC<PostEditorProps> = ({
         </CardHeader>
 
         <CardContent className="flex-1 overflow-auto p-3 sm:p-6">
+          {/* Role-based Access Information */}
+          {!hasPostingPermission ? (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertCircle className="h-4 w-4 text-red-600" />
+                <span className="font-medium text-red-800">Access Restricted</span>
+              </div>
+              <p className="text-sm text-red-700">
+                Only administrators and editors can create or edit blog posts. 
+                Your current role: <span className="font-medium">{userRole || 'None'}</span>
+              </p>
+            </div>
+          ) : (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <CheckCircle className="h-4 w-4 text-blue-600" />
+                <span className="font-medium text-blue-800">Simplified Posting Enabled</span>
+              </div>
+              <p className="text-sm text-blue-700">
+                As an {userRole}, you can create posts with just title and content. 
+                SEO data can be generated later from the dashboard.
+              </p>
+            </div>
+          )}
+          
           <div className="flex flex-col lg:flex-row h-full gap-3 sm:gap-6">
             {/* Main Editor */}
             <div className="flex-1 order-2 lg:order-1">
@@ -434,28 +626,6 @@ const PostEditor: React.FC<PostEditorProps> = ({
                     {title.length}/60 characters
                   </p>
                 </div>
-
-                {/* Emergency Content Reset */}
-                {content.length > 10000000 && (
-                  <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
-                    <h3 className="text-red-800 font-semibold mb-2">⚠️ Content Size Warning</h3>
-                    <p className="text-red-700 text-sm mb-3">
-                      Content is very large ({Math.round(content.length / 1024 / 1024)}MB). Consider optimizing for better performance.
-                    </p>
-                    <Button 
-                      variant="destructive" 
-                      size="sm"
-                      onClick={() => {
-                        if (confirm('This will clear the content and start fresh. Are you sure?')) {
-                          setContent('<p>Start writing your content here...</p>');
-                          setContentText('Start writing your content here...');
-                        }
-                      }}
-                    >
-                      Reset Content
-                    </Button>
-                  </div>
-                )}
 
                 {/* Featured Image */}
                 <div>
@@ -850,7 +1020,7 @@ const PostEditor: React.FC<PostEditorProps> = ({
             <Button
               variant="outline"
               onClick={() => handleSave('draft')}
-              disabled={isPublishing}
+              disabled={isPublishing || !hasPostingPermission}
               className="flex-1 sm:flex-none text-xs sm:text-sm"
               size="sm"
             >
@@ -859,7 +1029,7 @@ const PostEditor: React.FC<PostEditorProps> = ({
             </Button>
             <Button
               onClick={() => handleSave('published')}
-              disabled={isPublishing}
+              disabled={isPublishing || !hasPostingPermission}
               className="flex-1 sm:flex-none text-xs sm:text-sm"
               size="sm"
             >

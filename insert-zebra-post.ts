@@ -18,7 +18,7 @@ async function insertZebraPost() {
   const { data: users, error: userError } = await supabase
     .from('profiles')
     .select('user_id')
-    .eq('username', 'nanopro')
+    .eq('role', 'admin')
     .limit(1);
     
   if (userError || !users || users.length === 0) {

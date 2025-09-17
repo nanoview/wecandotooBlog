@@ -27,10 +27,12 @@ import ConfirmSubscription from "./pages/ConfirmSubscription";
 import AuthConfirm from "./pages/AuthConfirm";
 import ResetPassword from "./pages/ResetPassword";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
 import RSSFeed from "./pages/RSSFeed";
 import SitemapXML from "./pages/SitemapXML";
 import CookieConsentBanner from "@/components/CookieConsentBanner";
 import ArifulPortfolio from "./pages/ArifulPortfolio";
+import RoleManager from "./components/RoleManager";
 
 const queryClient = new QueryClient();
 
@@ -54,12 +56,14 @@ const App = () => (
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/terms" element={<TermsOfService />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/google-services" element={<GoogleServicesSetup />} />
             <Route path="/oauth/callback" element={<OAuthCallback />} />
             <Route path="/editor" element={<BlogEditor />} />
             <Route path="/write" element={<Write />} />
+            <Route path="/role-manager" element={<RoleManager />} />
             <Route path="/editor-panel" element={<EditorPanel />} />
             <Route path="/image-demo" element={<ImageUploadDemo />} />
             <Route path="/social-demo" element={<SocialSharingDemo />} />

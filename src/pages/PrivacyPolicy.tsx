@@ -105,7 +105,7 @@ const PrivacyPolicy: React.FC = () => {
           <section>
             <h2 className="text-2xl font-bold text-gray-800 mb-4">Contact Us</h2>
             <p className="text-gray-700 leading-relaxed">
-              If you have questions or comments about this Privacy Policy, please contact us at: <a href="mailto:privacy@wecandotoo.com" className="text-blue-600 hover:underline">privacy@wecandotoo.com</a>
+              If you have questions or comments about this Privacy Policy, please contact us at: <a href="mailto:hello@wecandotoo.com" className="text-blue-600 hover:underline">privacy@wecandotoo.com</a>
             </p>
           </section>
         </div>

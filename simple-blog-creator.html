@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Blog Post Creator</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2563eb;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #374151;
+        }
+        input[type="text"], textarea, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        input[type="text"]:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
+        textarea {
+            height: 200px;
+            resize: vertical;
+            font-family: inherit;
+        }
+        .btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+        }
+        .btn:hover {
+            background: #1d4ed8;
+        }
+        .btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+        .success {
+            background: #d1fae5;
+            border: 1px solid #10b981;
+            color: #065f46;
+        }
+        .error {
+            background: #fee2e2;
+            border: 1px solid #ef4444;
+            color: #991b1b;
+        }
+        .preview {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            border-left: 4px solid #2563eb;
+        }
+        .preview h3 {
+            margin-top: 0;
+            color: #2563eb;
+        }
+        .badge {
+            display: inline-block;
+            background: #2563eb;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Simple Blog Post Creator</h1>
+        <p style="text-align: center; color: #6b7280; margin-bottom: 30px;">
+            Just title and content - everything else is auto-generated!
+        </p>
+
+        <form id="blogForm">
+            <div class="form-group">
+                <label for="title">Post Title <span style="color: red;">*</span></label>
+                <input 
+                    type="text" 
+                    id="title" 
+                    name="title" 
+                    placeholder="Enter your amazing blog post title..."
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="content">Content <span style="color: red;">*</span></label>
+                <textarea 
+                    id="content" 
+                    name="content" 
+                    placeholder="Write your blog post content here... You can use HTML tags like <p>, <h1>, <strong>, etc."
+                    required
+                ></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="excerpt">Custom Excerpt <span class="badge">Optional</span></label>
+                <input 
+                    type="text" 
+                    id="excerpt" 
+                    name="excerpt" 
+                    placeholder="Leave empty to auto-generate from content..."
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="status">Status</label>
+                <select id="status" name="status">
+                    <option value="published">Published (visible immediately)</option>
+                    <option value="draft">Draft (save for later)</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn" id="submitBtn">
+                Create Blog Post
+            </button>
+        </form>
+
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('blogForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const result = document.getElementById('result');
+
+        // Replace with your actual Supabase URL and anon key
+        const SUPABASE_URL = 'https://rowcloxlszwnowlggqon.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJvd2Nsb3hsc3p3bm93bGdncW9uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4MjAwMDQsImV4cCI6MjA2OTM5NjAwNH0.8W8wBkV3hLKNfNMLRfaGT-owZ-x9ZXy_wAa6G0oB8ok';
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(form);
+            const data = {
+                title: formData.get('title'),
+                content: formData.get('content'),
+                excerpt: formData.get('excerpt') || undefined,
+                status: formData.get('status')
+            };
+
+            // Show loading state
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Creating Post...';
+            result.style.display = 'none';
+
+            try {
+                const response = await fetch(`${SUPABASE_URL}/functions/v1/simple-blog-post`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const responseData = await response.json();
+
+                if (responseData.success) {
+                    showResult('success', `
+                        <h3>✅ Blog Post Created Successfully!</h3>
+                        <div class="preview">
+                            <p><strong>Title:</strong> ${responseData.data.title}</p>
+                            <p><strong>Slug:</strong> ${responseData.data.slug}</p>
+                            <p><strong>Status:</strong> ${responseData.data.status}</p>
+                            <p><strong>Auto-generated:</strong></p>
+                            <ul>
+                                <li>Slug: ${responseData.data.auto_generated.slug ? 'Yes (made unique)' : 'No'}</li>
+                                <li>Excerpt: ${responseData.data.auto_generated.excerpt ? 'Yes' : 'No'}</li>
+                                <li>SEO Meta: ${responseData.data.auto_generated.meta_fields ? 'Yes' : 'No'}</li>
+                            </ul>
+                            ${responseData.data.status === 'published' ? 
+                                '<p style="color: #059669;"><strong>🎉 Your post is now live!</strong></p>' : 
+                                '<p style="color: #d97706;"><strong>📝 Your post is saved as draft</strong></p>'
+                            }
+                        </div>
+                    `);
+                    
+                    // Reset form
+                    form.reset();
+                } else {
+                    showResult('error', `
+                        <h3>❌ Error Creating Post</h3>
+                        <p>${responseData.error}</p>
+                    `);
+                }
+            } catch (error) {
+                showResult('error', `
+                    <h3>❌ Network Error</h3>
+                    <p>Failed to connect to the server. Please check your internet connection and try again.</p>
+                    <p><small>Error: ${error.message}</small></p>
+                `);
+            } finally {
+                // Reset button
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Create Blog Post';
+            }
+        });
+
+        function showResult(type, message) {
+            result.className = `result ${type}`;
+            result.innerHTML = message;
+            result.style.display = 'block';
+            result.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Auto-preview slug generation
+        document.getElementById('title').addEventListener('input', (e) => {
+            const title = e.target.value;
+            if (title) {
+                const previewSlug = title
+                    .toLowerCase()
+                    .replace(/[^a-z0-9\s]/g, '')
+                    .replace(/\s+/g, '-')
+                    .replace(/^-+|-+$/g, '');
+                
+                if (previewSlug) {
+                    e.target.style.borderColor = '#10b981';
+                    // Could add a preview element here
+                }
+            }
+        });
+    </script>
+</body>
+</html>

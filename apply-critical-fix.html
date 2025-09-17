@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apply Critical Database Fix</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Apply Critical Database Fix</h1>
+    <button onclick="applyCriticalFix()" style="padding: 10px 20px; background: #dc2626; color: white; border: none; border-radius: 5px; cursor: pointer;">
+        🔧 Apply Critical Fix
+    </button>
+    <div id="output"></div>
+    
+    <script>
+        const supabaseUrl = 'https://ssbvxavhktdajeehgaac.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzYnZ4YXZoa3RkYWplZWhnYWFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjMxMzU5NzYsImV4cCI6MjAzODcxMTk3Nn0.xZ3v9VJJIEDl7eW0R8DX7jN9xp8ZRqt9iDf8_ZZF5Gc';
+        
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        
+        const output = document.getElementById('output');
+        
+        async function applyCriticalFix() {
+            try {
+                output.innerHTML = '<p>🔧 Applying critical database fix...</p>';
+                
+                const { data, error } = await supabase.functions.invoke('critical-database-fix', {
+                    body: {}
+                });
+                
+                if (error) {
+                    output.innerHTML += `<h3>❌ Fix Failed:</h3>`;
+                    output.innerHTML += `<pre style="background: #ffe6e6; padding: 10px; border-radius: 5px;">${JSON.stringify(error, null, 2)}</pre>`;
+                } else {
+                    output.innerHTML += '<h3>✅ Fix Applied Successfully:</h3>';
+                    output.innerHTML += `<pre style="background: #e8f5e8; padding: 10px; border-radius: 5px;">${JSON.stringify(data, null, 2)}</pre>`;
+                    output.innerHTML += '<p><strong>🎉 The problematic function has been replaced with a safe stub!</strong></p>';
+                    output.innerHTML += '<p>Now try creating a blog post again - it should work without errors.</p>';
+                }
+                
+            } catch (err) {
+                output.innerHTML += `<h3>❌ JavaScript Error:</h3>`;
+                output.innerHTML += `<pre style="background: #ffe6e6; padding: 10px; border-radius: 5px;">${err.message}</pre>`;
+            }
+        }
+    </script>
+</body>
+</html>

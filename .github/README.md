@@ -81,10 +81,8 @@ We welcome contributions! Check out our [Contributing Guide](CONTRIBUTING.md) to
 
 ### 📞 Support
 
-- 💖 [Support Development](mailto:arif.js@gmail.com?subject=WeCanDoToo%20Support)
-- 🐛 [Report Issues](https://github.com/nanoview/wecandotooBlog/issues)
+-  [Report Issues](https://github.com/nanoview/wecandotooBlog/issues)
 - 💬 [Discussions](https://github.com/nanoview/wecandotooBlog/discussions)
-- 📧 [Email Support](mailto:arif.js@gmail.com)
 
 ### 📄 License
 

@@ -23,23 +23,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Content size monitor - allow large content up to reasonable limits
-  useEffect(() => {
-    const monitor = setInterval(() => {
-      if (editorRef.current) {
-        const currentSize = editorRef.current.innerHTML.length;
-        if (currentSize > 10000000) { // 10MB emergency limit for editor
-          console.error('🚨🚨🚨 GLOBAL MONITOR: Content size limit exceeded:', currentSize);
-          editorRef.current.innerHTML = '<p>Content automatically reset by safety monitor - content was too large (>10MB)</p>';
-          alert('Content size monitor detected content exceeding 10MB and reset the editor for performance.');
-          clearInterval(monitor);
-        }
-      }
-    }, 1000); // Check every 1 second
-
-    return () => clearInterval(monitor);
-  }, []);
-
   // Save and restore cursor position
   const saveCursorPosition = () => {
     const selection = window.getSelection();
@@ -68,12 +51,12 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
   const updateContent = () => {
     if (editorRef.current) {
-      // IMMEDIATE SAFETY CHECK: Before any processing
+      // IMMEDIATE SAFETY CHECK: Before any processing - allow large content for 10,000+ words
       const preCheck = editorRef.current.innerHTML;
-      if (preCheck && preCheck.length > 10000) { // 10KB immediate kill switch
-        console.error('🚨🚨🚨 IMMEDIATE KILL SWITCH: Content too large before processing:', preCheck.length);
-        editorRef.current.innerHTML = '<p>Content automatically reset - exceeded safe limits</p>';
-        alert('Content explosion detected and stopped. Please refresh the page.');
+      if (preCheck && preCheck.length > 25000000) { // 25MB immediate safety check (very generous)
+        console.error('🚨🚨🚨 IMMEDIATE SAFETY: Content extremely large before processing:', preCheck.length);
+        editorRef.current.innerHTML = '<p>Content automatically reset - exceeded maximum safe limits (25MB)</p>';
+        alert('Content size exceeded maximum safe limits. Please use smaller content or break into multiple posts.');
         return;
       }
       
@@ -89,33 +72,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       
       console.log('🔄 RichTextEditor - Processing content, size:', html.length);
       
-      // Content size check - allow reasonable large content
-      if (html.length > 5000000) { // 5MB limit for editor content
-        console.error('🚨🚨🚨 CONTENT SIZE: Large content detected:', html.length, 'characters');
-        console.error('🚨 Content limit: ' + html.length);
-        
-        // HARD RESET: Clear everything immediately
-        if (editorRef.current) {
-          editorRef.current.innerHTML = '<p>⚠️ Content reset - size limit exceeded (5MB max)</p>';
-          // Force a re-render to break any loops
-          setTimeout(() => {
-            if (editorRef.current) {
-              editorRef.current.innerHTML = '<p>Please reduce content size - maximum 5MB supported</p>';
-            }
-          }, 100);
-        }
-        
-        alert('CRITICAL: Content size exceeded 5MB limit. Editor reset for performance. Please use smaller content.');
-        return;
-      }
-      
-      // Warning at 2KB
-      if (html.length > 2000) { // 2KB warning
-        console.warn('⚠️ Content approaching 2KB limit:', html.length, 'characters');
-        console.warn('⚠️ Content limit: ' + html.length);
-      }
-      
-      // Check for content duplication patterns (common in infinite loops)
+      // Only check for content duplication patterns (common in infinite loops) - no size limits
       if (html.length > 1000000) { // Only check for very large content (1MB+)
         const contentPreview = html.substring(0, 100);
         const duplicateMatches = (html.match(new RegExp(contentPreview.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length;

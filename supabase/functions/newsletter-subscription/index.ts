@@ -13,6 +13,7 @@ interface SubscriptionRequest {
   action: 'subscribe' | 'confirm' | 'unsubscribe';
   token?: string;
   user_id?: string;
+  terms_accepted?: boolean;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -28,16 +29,23 @@ const handler = async (req: Request): Promise<Response> => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { email, action, token, user_id }: SubscriptionRequest = await req.json();
+    const { email, action, token, user_id, terms_accepted }: SubscriptionRequest = await req.json();
 
-    if (!email) {
+    if (!email && action !== 'confirm') {
       throw new Error('Email is required');
     }
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      throw new Error('Invalid email format');
+    // For confirmation, check if terms are accepted
+    if (action === 'confirm' && !terms_accepted) {
+      throw new Error('Terms and conditions must be accepted to complete subscription');
+    }
+
+    // Validate email format (except for confirmation)
+    if (email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        throw new Error('Invalid email format');
+      }
     }
 
     let result;
@@ -100,6 +108,10 @@ const handler = async (req: Request): Promise<Response> => {
       case 'confirm':
         if (!token) {
           throw new Error('Confirmation token is required');
+        }
+
+        if (!terms_accepted) {
+          throw new Error('Terms and conditions must be accepted to complete subscription');
         }
 
         const { data: confirmData, error: confirmError } = await supabase

@@ -23,7 +23,8 @@ import {
   Database,
   Settings,
   Plus,
-  Edit
+  Edit,
+  RefreshCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -50,6 +51,7 @@ const ContactMessages = lazy(() => import('@/components/admin/ContactMessages'))
 const SEOUtilities = lazy(() => import('@/components/admin/SEOUtilities'));
 const DatabaseViewer = lazy(() => import('@/components/admin/DatabaseViewer'));
 const VisitorAnalytics = lazy(() => import('@/components/admin/VisitorAnalytics'));
+const AuthenticationReset = lazy(() => import('@/components/AuthenticationReset'));
 
 interface Profile {
   id: string;
@@ -584,6 +586,20 @@ const Admin = () => {
                 </CardContent>
               </Card>
 
+              {/* Authentication Reset Panel */}
+              <Card 
+                className="hover:shadow-lg transition-shadow cursor-pointer group hover:scale-105 transition-transform duration-200"
+                onClick={() => setSelectedView('auth-reset')}
+              >
+                <CardContent className="p-8 text-center">
+                  <div className="bg-red-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 group-hover:bg-red-200 transition-colors">
+                    <RefreshCw className="w-8 h-8 text-red-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Auth Reset</h3>
+                  <p className="text-gray-600 text-sm">Clear authentication data</p>
+                </CardContent>
+              </Card>
+
               {/* Settings Panel */}
               <Card 
                 className="hover:shadow-lg transition-shadow cursor-pointer group hover:scale-105 transition-transform duration-200"
@@ -708,6 +724,12 @@ const Admin = () => {
             {selectedView === 'database' && (
               <Suspense fallback={<LoadingSkeleton />}>
                 <DatabaseViewer />
+              </Suspense>
+            )}
+
+            {selectedView === 'auth-reset' && (
+              <Suspense fallback={<LoadingSkeleton />}>
+                <AuthenticationReset />
               </Suspense>
             )}
 

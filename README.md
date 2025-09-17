@@ -1,7 +1,6 @@
 # WeCanDoToo - React TypeScript Blog Platform | Open Source Blogging Solution 🚀
 
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-Visit%20Site-brightgreen?style=for-the-badge&logo=vercel)](https://wecandotoo.com)
-[![Support](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Support%20Development-orange?style=for-the-badge&logo=buy-me-a-coffee)](mailto:arif.js@gmail.com?subject=WeCanDoToo%20Support)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)](LICENSE)
 [![GitHub Stars](https://img.shields.io/github/stars/nanoview/wecandotooBlog?style=for-the-badge)](https://github.com/nanoview/wecandotooBlog/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/nanoview/wecandotooBlog?style=for-the-badge)](https://github.com/nanoview/wecandotooBlog/network)
@@ -82,7 +81,7 @@ Transform your ideas into a powerful blog in minutes! WeCanDoToo is a complete, 
 
 **Time Required: 30 minutes**
 
-1. **📧 Contact us** - Email `arif.js@gmail.com` with "Set up my blog"
+1. **📧 Contact us** - Get in touch with support team
 2. **☕ Support the project** - Small donation to cover setup costs
 3. **🎉 Get your blog** - We'll set everything up for you
 4. **✍️ Start writing** - Begin creating amazing content immediately
@@ -195,7 +194,7 @@ We've created guides for every skill level:
 - ✅ SSL certificate and security
 - ✅ Basic customization
 
-**[Get Started →](mailto:arif.js@gmail.com?subject=Managed%20WeCanDoToo%20Setup)**
+**[Get Started →](#quick-start)**
 
 ### 🛠️ **Self-Hosted** (For DIY Enthusiasts)
 **Price: Free (you pay only hosting costs ~$10/month)**
@@ -215,7 +214,7 @@ We've created guides for every skill level:
 - ✅ Custom integrations
 - ✅ Training for your team
 
-**[Contact for Enterprise →](mailto:arif.js@gmail.com?subject=Enterprise%20WeCanDoToo)**
+**[Contact for Enterprise →](#contact-support)**
 
 ## ⚡ Quick Start (5 Minutes to See It Working)
 
@@ -251,8 +250,7 @@ Want to see what your blog would look like? Here's the fastest way:
 ## 🤝 Community & Support
 
 ### 🆘 **Get Help When You Need It**
-- **📧 Email Support**: arif.js@gmail.com (usually respond within 24 hours)
-- **📚 Documentation**: Comprehensive guides for everything
+- ** Documentation**: Comprehensive guides for everything
 - **🐛 Bug Reports**: [GitHub Issues](https://github.com/nanoview/stellar-content-stream/issues)
 - **💬 Community**: Discord server coming soon!
 
@@ -266,9 +264,7 @@ Want to see what your blog would look like? Here's the fastest way:
 
 Love WeCanDoToo? Help us keep it awesome!
 
-[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Support%20Development-orange?style=for-the-badge&logo=buy-me-a-coffee)](mailto:arif.js@gmail.com?subject=WeCanDoToo%20Support&body=Hi!%20I'd%20like%20to%20support%20the%20WeCanDoToo%20project.%20Please%20send%20me%20your%20PayPal%20details.)
-
-**PayPal**: `arif.js@gmail.com`
+*Support the open-source development through GitHub Sponsors or other contribution methods.*
 
 ### Your Support Helps Us:
 - 🛠️ **Fix bugs faster** and add new features
@@ -306,7 +302,7 @@ Love WeCanDoToo? Help us keep it awesome!
 - **Team Collaboration Tools** for multi-author blogs
 
 ### 🗳️ **Vote on Features**
-Help us decide what to build next! Email your feature requests to `arif.js@gmail.com`
+Help us decide what to build next! Share your feature requests in GitHub Issues.
 
 ## 📞 Ready to Start Your Blog?
 
@@ -315,7 +311,7 @@ Help us decide what to build next! Email your feature requests to `arif.js@gmail
 #### 🚀 **I Want It Set Up For Me** (Most Popular)
 Perfect if you want to start blogging immediately without any technical setup.
 
-**[Email Us Now →](mailto:arif.js@gmail.com?subject=Set%20Up%20My%20WeCanDoToo%20Blog&body=Hi!%20I'd%20like%20you%20to%20set%20up%20a%20WeCanDoToo%20blog%20for%20me.%20%0A%0AMy%20blog%20will%20be%20about:%20%0A%0APreferred%20domain%20name:%20%0A%0AContact%20email:%20%0A%0AThanks!)**
+**[Get Started Now →](#quick-start)**
 
 #### 🛠️ **I Want to Learn and Do It Myself**
 Perfect if you enjoy learning new things and want full control.
@@ -556,11 +552,9 @@ If you encounter any issues or have questions:
 
 ## ☕ Support the Project
 
-If you find this project helpful and want to support its development, consider buying me a coffee! Your support helps maintain and improve this open-source platform.
+If you find this project helpful and want to support its development, consider supporting through GitHub Sponsors or contributing to the project! Your support helps maintain and improve this open-source platform.
 
-[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Support%20Development-orange?style=for-the-badge&logo=buy-me-a-coffee)](mailto:arif.js@gmail.com?subject=WeCanDoToo%20Support&body=Hi!%20I'd%20like%20to%20support%20the%20WeCanDoToo%20project.%20Please%20send%20me%20your%20PayPal%20details.)
-
-**PayPal**: `arif.js@gmail.com`
+*Support the project through contributions, starring the repository, or sharing with others.*
 
 Your contributions help:
 - 🛠️ **Maintain the codebase** and fix bugs

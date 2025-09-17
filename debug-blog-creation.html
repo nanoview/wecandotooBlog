@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog Post Creation Debug Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #00ff00;
+        }
+        .error { color: #ff4444; }
+        .success { color: #44ff44; }
+        .warning { color: #ffaa44; }
+        .info { color: #4488ff; }
+        .box {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        button {
+            background: #333;
+            color: #00ff00;
+            border: 1px solid #666;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        button:hover { background: #444; }
+        input, textarea {
+            background: #2a2a2a;
+            color: #00ff00;
+            border: 1px solid #666;
+            padding: 8px;
+            width: 100%;
+            margin: 5px 0;
+            border-radius: 3px;
+        }
+        .log {
+            background: #111;
+            border: 1px solid #333;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🐛 Blog Post Creation Debug Test</h1>
+    <p class="info">This tool tests different methods to create blog posts and identify the source of the "generate_comprehensive_ke..." error.</p>
+
+    <div class="box">
+        <h3>Test Post Data</h3>
+        <input type="text" id="title" placeholder="Test Post Title" value="Debug Test Post">
+        <textarea id="content" rows="4" placeholder="Post content">This is a test post to debug the blog creation issue. The error seems to be related to a database function called "generate_comprehensive_ke..." which is failing.</textarea>
+        <input type="text" id="excerpt" placeholder="Post excerpt" value="Test excerpt for debugging">
+    </div>
+
+    <div class="box">
+        <h3>Test Methods</h3>
+        <button onclick="testEdgeFunction()">🚀 Test Edge Function (simple-blog-post)</button>
+        <button onclick="testDirectInsert()">💾 Test Direct Database Insert</button>
+        <button onclick="testSQLFunction()">🔧 Test SQL Function (create_simple_blog_post)</button>
+        <button onclick="clearLogs()">🧹 Clear Logs</button>
+    </div>
+
+    <div class="box">
+        <h3>Debug Output</h3>
+        <div id="logs" class="log"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Initialize Supabase client
+        const supabaseUrl = 'https://rowcloxlszwnowlggqon.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJvd2Nsb3hsc3p3bm93bGdncW9uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQ4NTQ0NjgsImV4cCI6MjA0MDQzMDQ2OH0.MKUh3MBo_ZWGNSKr3Jl7fVVJNmUdGHfW-2iB5kgV3pI';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logs = document.getElementById('logs');
+            const logEntry = document.createElement('div');
+            logEntry.className = type;
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            logs.appendChild(logEntry);
+            logs.scrollTop = logs.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+
+        function getTestData() {
+            return {
+                title: document.getElementById('title').value || 'Debug Test Post',
+                content: document.getElementById('content').value || 'Debug content',
+                excerpt: document.getElementById('excerpt').value || 'Debug excerpt',
+                status: 'draft'
+            };
+        }
+
+        async function testEdgeFunction() {
+            log('🚀 Testing Edge Function Method...', 'info');
+            try {
+                const testData = getTestData();
+                log(`📝 Creating post: "${testData.title}"`, 'info');
+
+                const { data, error } = await supabase.functions.invoke('simple-blog-post', {
+                    body: testData
+                });
+
+                if (error) {
+                    log(`❌ Edge Function Error: ${JSON.stringify(error)}`, 'error');
+                    return;
+                }
+
+                if (data?.success) {
+                    log(`✅ Edge Function Success: ${JSON.stringify(data)}`, 'success');
+                    log(`📊 Created post ID: ${data.data.id}`, 'success');
+                    log(`🔗 Generated slug: ${data.data.slug}`, 'success');
+                } else {
+                    log(`⚠️ Edge Function Failed: ${JSON.stringify(data)}`, 'warning');
+                }
+            } catch (error) {
+                log(`💥 Exception in Edge Function: ${error.message}`, 'error');
+                log(`🔍 Full error: ${JSON.stringify(error)}`, 'error');
+            }
+        }
+
+        async function testDirectInsert() {
+            log('💾 Testing Direct Database Insert...', 'info');
+            try {
+                const testData = getTestData();
+                const slug = testData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') + '-' + Date.now();
+                
+                log(`📝 Inserting post with slug: ${slug}`, 'info');
+                log(`🔍 KNOWN ISSUE: This may fail due to "generate_comprehensive_keywords_and_tags" function`, 'warning');
+
+                const { data, error } = await supabase
+                    .from('blog_posts')
+                    .insert({
+                        title: testData.title,
+                        slug: slug,
+                        content: testData.content,
+                        excerpt: testData.excerpt,
+                        status: testData.status,
+                        category: 'Other',
+                        tags: ['debug', 'test'],
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    })
+                    .select()
+                    .single();
+
+                if (error) {
+                    log(`❌ Direct Insert Error: ${JSON.stringify(error)}`, 'error');
+                    log(`🔍 Error Code: ${error.code}`, 'error');
+                    log(`🔍 Error Message: ${error.message}`, 'error');
+                    log(`🔍 Error Details: ${error.details}`, 'error');
+                    log(`🔍 Error Hint: ${error.hint}`, 'error');
+                    
+                    // Check if this is the known function error
+                    if (error.message && error.message.includes('generate_comprehensive_ke')) {
+                        log(`🎯 IDENTIFIED: This is the "generate_comprehensive_keywords_and_tags" function error!`, 'error');
+                        log(`🛠️ SOLUTION: Run the fix-generate-keywords-error.sql script to disable this function`, 'warning');
+                        log(`📋 The function is likely called by a trigger on INSERT/UPDATE`, 'info');
+                    }
+                    return;
+                }
+
+                log(`✅ Direct Insert Success: ${JSON.stringify(data)}`, 'success');
+                log(`📊 Created post ID: ${data.id}`, 'success');
+            } catch (error) {
+                log(`💥 Exception in Direct Insert: ${error.message}`, 'error');
+                log(`🔍 Full error: ${JSON.stringify(error)}`, 'error');
+                
+                // Check if this is the known function error
+                if (error.message && error.message.includes('generate_comprehensive_ke')) {
+                    log(`🎯 IDENTIFIED: This is the "generate_comprehensive_keywords_and_tags" function error!`, 'error');
+                    log(`🛠️ SOLUTION: Run the fix-generate-keywords-error.sql script to disable this function`, 'warning');
+                }
+            }
+        }
+
+        async function testSQLFunction() {
+            log('🔧 Testing SQL Function Method...', 'info');
+            try {
+                const testData = getTestData();
+                log(`📝 Calling create_simple_blog_post function...`, 'info');
+
+                const { data, error } = await supabase.rpc('create_simple_blog_post', {
+                    post_title: testData.title,
+                    post_content: testData.content,
+                    post_excerpt: testData.excerpt
+                });
+
+                if (error) {
+                    log(`❌ SQL Function Error: ${JSON.stringify(error)}`, 'error');
+                    log(`🔍 Error Code: ${error.code}`, 'error');
+                    log(`🔍 Error Message: ${error.message}`, 'error');
+                    return;
+                }
+
+                log(`✅ SQL Function Success: ${JSON.stringify(data)}`, 'success');
+                if (data?.success) {
+                    log(`📊 Created post ID: ${data.post_id}`, 'success');
+                    log(`🔗 Generated slug: ${data.slug}`, 'success');
+                }
+            } catch (error) {
+                log(`💥 Exception in SQL Function: ${error.message}`, 'error');
+                log(`🔍 Full error: ${JSON.stringify(error)}`, 'error');
+            }
+        }
+
+        // Auto-start with basic info
+        log('🔧 Blog Post Creation Debug Tool Loaded', 'success');
+        log('📋 Available test methods:', 'info');
+        log('  1. Edge Function - Uses the simple-blog-post edge function', 'info');
+        log('  2. Direct Insert - Bypasses all functions and inserts directly', 'info');
+        log('  3. SQL Function - Uses the create_simple_blog_post database function', 'info');
+        log('🎯 Click a test method above to identify the source of the error', 'warning');
+    </script>
+</body>
+</html>

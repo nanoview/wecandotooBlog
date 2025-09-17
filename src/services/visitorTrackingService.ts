@@ -151,18 +151,21 @@ class VisitorTrackingService {
       });
 
       if (!response.ok) {
+        console.warn(`Edge function failed with status ${response.status}, falling back to direct database call`);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const result = await response.json();
       
       if (!result.success) {
+        console.warn('Edge function returned error, falling back to direct database call:', result.error);
         throw new Error(result.error || 'Failed to create session');
       }
 
       console.log('Session created/updated via edge function:', result.data);
+      return; // Success, no need for fallback
     } catch (error) {
-      console.error('Failed to create/update session via edge function:', error);
+      console.warn('Edge function failed, attempting fallback to direct database call:', error);
       
       // Fallback to direct Supabase call (without real IP)
       try {
@@ -246,12 +249,14 @@ class VisitorTrackingService {
       });
 
       if (!response.ok) {
+        console.warn(`Edge function failed with status ${response.status}, falling back to direct database call`);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const result = await response.json();
       
       if (!result.success) {
+        console.warn('Edge function returned error, falling back to direct database call:', result.error);
         throw new Error(result.error || 'Failed to track page view');
       }
 
@@ -260,8 +265,9 @@ class VisitorTrackingService {
       this.maxScrollDepth = 0;
 
       console.log('Post view tracked via edge function:', { postId, postSlug });
+      return; // Success, no need for fallback
     } catch (error) {
-      console.error('Failed to track post view via edge function:', error);
+      console.warn('Edge function failed, attempting fallback to direct database call:', error);
       
       // Fallback to direct Supabase call
       try {
@@ -284,7 +290,8 @@ class VisitorTrackingService {
 
         console.log('Post view tracked (fallback):', { postId, postSlug });
       } catch (fallbackError) {
-        console.error('Fallback post tracking also failed:', fallbackError);
+        console.warn('Both edge function and direct database calls failed for post tracking:', fallbackError);
+        // Continue silently - don't break the user experience
       }
     }
   }
@@ -426,10 +433,10 @@ class VisitorTrackingService {
         });
 
         if (!response.ok) {
-          console.error('Heartbeat failed:', response.status, response.statusText);
+          console.warn('Heartbeat failed, but continuing silently:', response.status, response.statusText);
         }
       } catch (error) {
-        console.error('Heartbeat error:', error);
+        console.warn('Heartbeat error, but continuing silently:', error);
       }
     }, 30000); // 30 seconds
   }
@@ -453,11 +460,21 @@ class VisitorTrackingService {
   }
 
   private detectBrowser(userAgent: string): string {
-    if (userAgent.includes('Chrome') && !userAgent.includes('Edg')) return 'Chrome';
+    // Check for Edge first (both legacy and Chromium-based Edge)
+    if (userAgent.includes('Edg/') || userAgent.includes('Edge/')) return 'Edge';
+    
+    // Check for Chrome (but exclude Edge which also contains "Chrome")
+    if (userAgent.includes('Chrome') && !userAgent.includes('Edg') && !userAgent.includes('Edge')) return 'Chrome';
+    
+    // Check for Firefox
     if (userAgent.includes('Firefox')) return 'Firefox';
-    if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) return 'Safari';
-    if (userAgent.includes('Edg')) return 'Edge';
-    if (userAgent.includes('Opera')) return 'Opera';
+    
+    // Check for Safari (but exclude Chrome-based browsers that contain "Safari")
+    if (userAgent.includes('Safari') && !userAgent.includes('Chrome') && !userAgent.includes('Edg') && !userAgent.includes('Edge')) return 'Safari';
+    
+    // Check for Opera
+    if (userAgent.includes('Opera') || userAgent.includes('OPR/')) return 'Opera';
+    
     return 'Unknown';
   }
 

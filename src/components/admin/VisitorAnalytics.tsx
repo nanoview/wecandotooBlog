@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { AnalyticsSetup } from './AnalyticsSetup';
 
 interface VisitorSession {
   id: string;
@@ -73,6 +74,7 @@ export default function VisitorAnalytics() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [dateFilter, setDateFilter] = useState('today');
+  const [tablesNotSetup, setTablesNotSetup] = useState(false);
   const { toast } = useToast();
 
   const fetchVisitorAnalytics = async () => {
@@ -106,7 +108,13 @@ export default function VisitorAnalytics() {
         .order('created_at', { ascending: false })
         .limit(100);
 
-      if (sessionsError) throw sessionsError;
+      if (sessionsError) {
+        console.warn('Visitor sessions table error:', sessionsError);
+        if (sessionsError.message.includes('does not exist')) {
+          throw new Error('Analytics tables not set up yet. Please run the database migrations to create visitor tracking tables.');
+        }
+        throw sessionsError;
+      }
 
       // Fetch post impressions (without join to avoid relationship issues)
       const { data: impressions, error: impressionsError } = await supabase
@@ -116,7 +124,13 @@ export default function VisitorAnalytics() {
         .order('timestamp', { ascending: false })
         .limit(200);
 
-      if (impressionsError) throw impressionsError;
+      if (impressionsError) {
+        console.warn('Post impressions table error:', impressionsError);
+        if (impressionsError.message.includes('does not exist')) {
+          throw new Error('Analytics tables not set up yet. Please run the database migrations to create visitor tracking tables.');
+        }
+        throw impressionsError;
+      }
 
       // Fetch blog posts separately and join in JavaScript
       let impressionsWithPosts = impressions || [];
@@ -155,23 +169,46 @@ export default function VisitorAnalytics() {
         .order('date', { ascending: false })
         .limit(30);
 
-      if (summaryError) throw summaryError;
+      if (summaryError) {
+        console.warn('Analytics summary table error:', summaryError);
+        if (summaryError.message.includes('does not exist')) {
+          throw new Error('Analytics tables not set up yet. Please run the database migrations to create visitor tracking tables.');
+        }
+        throw summaryError;
+      }
 
       setVisitorSessions(sessions || []);
       setPostImpressions(impressionsWithPosts || []);
       setAnalyticsSummary(summary || []);
+      setTablesNotSetup(false);
 
     } catch (error: any) {
       console.error('Error fetching visitor analytics:', error);
-      toast({
-        title: "Error Loading Analytics",
-        description: error.message,
-        variant: "destructive"
-      });
+      
+      // Check if it's a table not found error
+      if (error.message.includes('does not exist') || error.message.includes('relation') || error.message.includes('Analytics tables not set up')) {
+        setTablesNotSetup(true);
+        toast({
+          title: "Analytics Setup Required",
+          description: "Analytics tables need to be created. Follow the setup instructions below.",
+          variant: "default"
+        });
+      } else {
+        toast({
+          title: "Error Loading Analytics",
+          description: error.message,
+          variant: "destructive"
+        });
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
+  };
+
+  const handleSetupComplete = () => {
+    setTablesNotSetup(false);
+    fetchVisitorAnalytics();
   };
 
   useEffect(() => {
@@ -260,6 +297,11 @@ export default function VisitorAnalytics() {
         </div>
       </div>
     );
+  }
+
+  // Show setup component if tables are not setup
+  if (tablesNotSetup) {
+    return <AnalyticsSetup onSetupComplete={handleSetupComplete} />;
   }
 
   return (
